@@ -779,6 +779,7 @@ export default function App() {
           saveData("cooldownEnds", cloud.cooldownEnds || {});
           saveData("dailyCounts", cloud.dailyCounts || {});
           saveData("lastDecayTime", cloud.lastDecayTime || Date.now());
+          saveData("savedAt", cloud.savedAt || Date.now());
         }
         setCloudStatus("☁️");
       } else {
@@ -817,6 +818,7 @@ export default function App() {
         setCooldownEnds(cloud.cooldownEnds || {});
         setDailyCounts(cloud.dailyCounts || {});
         setLastDecayTime(cloud.lastDecayTime || Date.now());
+        saveData("savedAt", cloud.savedAt || Date.now());
       }
     };
     document.addEventListener("visibilitychange", onVisible);

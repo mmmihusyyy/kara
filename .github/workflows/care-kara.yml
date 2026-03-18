@@ -16,7 +16,14 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           set -e
-          
+
+          # Skip care during Kara's sleep time (JST 21:00 - 6:00)
+          JST_HOUR=$(TZ=Asia/Tokyo date +%H | sed 's/^0//')
+          if [ "$JST_HOUR" -ge 21 ] || [ "$JST_HOUR" -lt 6 ]; then
+            echo "Kara is sleeping (JST $JST_HOUR:00). Skipping care. 💤"
+            exit 0
+          fi
+
           # Fetch current state
           RESPONSE=$(curl -s \
             "${SUPABASE_URL}/rest/v1/kara_state?id=eq.1&select=state_data" \

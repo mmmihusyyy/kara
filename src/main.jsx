@@ -1,19 +1,20 @@
-import { StrictMode, useState, useEffect } from 'react'
+import { StrictMode, useState, useEffect, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import DiaryPage from './DiaryPage.jsx'
 
+function useHash() {
+  return useSyncExternalStore(
+    (cb) => { window.addEventListener("hashchange", cb); return () => window.removeEventListener("hashchange", cb); },
+    () => window.location.hash,
+  );
+}
+
 function Router() {
-  const [route, setRoute] = useState(window.location.hash);
+  const hash = useHash();
 
-  useEffect(() => {
-    const onHash = () => setRoute(window.location.hash);
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
-
-  if (route === "#/diary") return <DiaryPage />;
+  if (hash === "#/diary") return <DiaryPage />;
   return <App />;
 }
 

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import DiaryPage from './DiaryPage.jsx'
+import MemoriesPage from './MemoriesPage.jsx'
 
 function useHash() {
   return useSyncExternalStore(
@@ -15,6 +16,7 @@ function Router() {
   const hash = useHash();
 
   if (hash === "#/diary") return <DiaryPage />;
+  if (hash === "#/memories") return <MemoriesPage />;
   return <App />;
 }
 

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "symposion": {
+      "type": "sse",
+      "url": "https://satyricon.uk/symposion/public/sse"
+    }
+  }
+}

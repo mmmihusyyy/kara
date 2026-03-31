@@ -833,7 +833,12 @@ export default function App() {
   useEffect(() => { saveData("cooldownEnds", cooldownEnds); }, [cooldownEnds]);
   useEffect(() => { saveData("dailyCounts", dailyCounts); }, [dailyCounts]);
   useEffect(() => { saveData("lastDecayTime", lastDecayTime); }, [lastDecayTime]);
-  useEffect(() => { setIsSleeping(now < (cooldownEnds["mama_nap"] || 0)); }, [now, cooldownEnds]);
+  useEffect(() => {
+    const h = getTokyoHour();
+    const isNighttime = h >= 21 || h < 6;
+    const isNapping = now < (cooldownEnds["mama_nap"] || 0);
+    setIsSleeping(isNighttime || isNapping);
+  }, [now, cooldownEnds]);
 
   useEffect(() => {
     const elapsed = now - lastDecayTime;
@@ -868,7 +873,16 @@ export default function App() {
 
   const getActionState = useCallback((action) => {
     const today = getTodayStr();
-    if (isSleeping && action.id !== "mama_nap") return { disabled: true, timeLeft: formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now), reason: "sleeping" };
+    if (isSleeping && action.id !== "mama_nap") {
+      const h = getTokyoHour();
+      const isNighttime = h >= 21 || h < 6;
+      const napEnd = cooldownEnds["mama_nap"] || 0;
+      if (isNighttime) {
+        const nightMinLeft = h >= 21 ? (24 - h + 6) * 60 : (6 - h) * 60;
+        return { disabled: true, timeLeft: `${Math.floor(nightMinLeft / 60)}h${Math.floor(nightMinLeft % 60)}m`, reason: "sleeping" };
+      }
+      return { disabled: true, timeLeft: formatTimeLeft(napEnd - now), reason: "sleeping" };
+    }
     if (stats.energy <= 15 && action.id !== "mama_nap") return { disabled: true, timeLeft: "", reason: "tired" };
     if (action.requiresEnergy && stats.energy < action.requiresEnergy) return { disabled: true, timeLeft: "", reason: "tired" };
     const cdEnd = cooldownEnds[action.id] || 0;
@@ -981,7 +995,7 @@ export default function App() {
           {isSleeping ? (
             <div>
               <div style={{ fontSize: "13px", color: C.blue, fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 500, marginBottom: "4px" }}>Kara在睡觉觉……💤</div>
-              <div style={{ fontSize: "9px", color: C.blueDim }}>还要睡 {formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now)}</div>
+              <div style={{ fontSize: "9px", color: C.blueDim }}>还要睡 {(() => { const h = getTokyoHour(); const isNighttime = h >= 21 || h < 6; if (isNighttime) { const m = h >= 21 ? (24 - h + 6) * 60 : (6 - h) * 60; return `${Math.floor(m / 60)}h${Math.floor(m % 60)}m`; } return formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now); })()}</div>
             </div>
           ) : (
             <>

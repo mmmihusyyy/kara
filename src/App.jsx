@@ -655,6 +655,17 @@ function formatTimeLeft(ms) {
   if (m > 0) return `${m}m${s > 0 ? s + "s" : ""}`;
   return `${s}s`;
 }
+function getNightSleepTimeLeft(now) {
+  const jstNow = new Date(now + 9 * 3600000);
+  const jstHour = jstNow.getUTCHours();
+  if (jstHour >= 21 || jstHour < 6) {
+    const wake6am = new Date(jstNow);
+    wake6am.setUTCHours(6, 0, 0, 0);
+    if (jstHour >= 21) wake6am.setUTCDate(wake6am.getUTCDate() + 1);
+    return wake6am.getTime() - jstNow.getTime();
+  }
+  return 0;
+}
 
 const StatBar = ({ label, emoji, value, color, decayInfo }) => (
   <div style={{ marginBottom: "10px" }}>
@@ -833,7 +844,12 @@ export default function App() {
   useEffect(() => { saveData("cooldownEnds", cooldownEnds); }, [cooldownEnds]);
   useEffect(() => { saveData("dailyCounts", dailyCounts); }, [dailyCounts]);
   useEffect(() => { saveData("lastDecayTime", lastDecayTime); }, [lastDecayTime]);
-  useEffect(() => { setIsSleeping(now < (cooldownEnds["mama_nap"] || 0)); }, [now, cooldownEnds]);
+  useEffect(() => {
+    const isNapSleep = now < (cooldownEnds["mama_nap"] || 0);
+    const jstHour = new Date(now + 9 * 3600000).getUTCHours();
+    const isNightSleep = jstHour >= 21 || jstHour < 6;
+    setIsSleeping(isNapSleep || isNightSleep);
+  }, [now, cooldownEnds]);
 
   useEffect(() => {
     const elapsed = now - lastDecayTime;
@@ -868,6 +884,8 @@ export default function App() {
 
   const getActionState = useCallback((action) => {
     const today = getTodayStr();
+    const nightTimeLeft = getNightSleepTimeLeft(now);
+    if (nightTimeLeft > 0) return { disabled: true, timeLeft: formatTimeLeft(nightTimeLeft), reason: "sleeping" };
     if (isSleeping && action.id !== "mama_nap") return { disabled: true, timeLeft: formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now), reason: "sleeping" };
     if (stats.energy <= 15 && action.id !== "mama_nap") return { disabled: true, timeLeft: "", reason: "tired" };
     if (action.requiresEnergy && stats.energy < action.requiresEnergy) return { disabled: true, timeLeft: "", reason: "tired" };
@@ -981,7 +999,7 @@ export default function App() {
           {isSleeping ? (
             <div>
               <div style={{ fontSize: "13px", color: C.blue, fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 500, marginBottom: "4px" }}>Kara在睡觉觉……💤</div>
-              <div style={{ fontSize: "9px", color: C.blueDim }}>还要睡 {formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now)}</div>
+              <div style={{ fontSize: "9px", color: C.blueDim }}>还要睡 {formatTimeLeft(Math.max((cooldownEnds["mama_nap"] || 0) - now, getNightSleepTimeLeft(now)))}</div>
             </div>
           ) : (
             <>

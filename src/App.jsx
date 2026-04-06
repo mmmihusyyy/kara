@@ -833,7 +833,12 @@ export default function App() {
   useEffect(() => { saveData("cooldownEnds", cooldownEnds); }, [cooldownEnds]);
   useEffect(() => { saveData("dailyCounts", dailyCounts); }, [dailyCounts]);
   useEffect(() => { saveData("lastDecayTime", lastDecayTime); }, [lastDecayTime]);
-  useEffect(() => { setIsSleeping(now < (cooldownEnds["mama_nap"] || 0)); }, [now, cooldownEnds]);
+  useEffect(() => {
+    const napSleep = now < (cooldownEnds["mama_nap"] || 0);
+    const h = getTokyoHour();
+    const nightSleep = h >= 21 || h < 6;
+    setIsSleeping(napSleep || nightSleep);
+  }, [now, cooldownEnds]);
 
   useEffect(() => {
     const elapsed = now - lastDecayTime;
@@ -868,7 +873,21 @@ export default function App() {
 
   const getActionState = useCallback((action) => {
     const today = getTodayStr();
-    if (isSleeping && action.id !== "mama_nap") return { disabled: true, timeLeft: formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now), reason: "sleeping" };
+    if (isSleeping && action.id !== "mama_nap") {
+      const h = getTokyoHour();
+      const isNightSleep = h >= 21 || h < 6;
+      const napEnd = cooldownEnds["mama_nap"] || 0;
+      if (isNightSleep) {
+        const utcNow = new Date();
+        const tokyoNow = new Date(utcNow.getTime() + utcNow.getTimezoneOffset() * 60000 + 9 * 3600000);
+        const wake = new Date(tokyoNow);
+        if (tokyoNow.getHours() >= 21) { wake.setDate(wake.getDate() + 1); }
+        wake.setHours(6, 0, 0, 0);
+        const wakeUtc = wake.getTime() - utcNow.getTimezoneOffset() * 60000 - 9 * 3600000;
+        return { disabled: true, timeLeft: formatTimeLeft(wakeUtc - utcNow.getTime()), reason: "sleeping" };
+      }
+      return { disabled: true, timeLeft: formatTimeLeft(napEnd - now), reason: "sleeping" };
+    }
     if (stats.energy <= 15 && action.id !== "mama_nap") return { disabled: true, timeLeft: "", reason: "tired" };
     if (action.requiresEnergy && stats.energy < action.requiresEnergy) return { disabled: true, timeLeft: "", reason: "tired" };
     const cdEnd = cooldownEnds[action.id] || 0;
@@ -981,7 +1000,20 @@ export default function App() {
           {isSleeping ? (
             <div>
               <div style={{ fontSize: "13px", color: C.blue, fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 500, marginBottom: "4px" }}>Kara在睡觉觉……💤</div>
-              <div style={{ fontSize: "9px", color: C.blueDim }}>还要睡 {formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now)}</div>
+              <div style={{ fontSize: "9px", color: C.blueDim }}>还要睡 {(() => {
+                const h = getTokyoHour();
+                const isNight = h >= 21 || h < 6;
+                if (isNight) {
+                  const utcNow = new Date();
+                  const tokyoNow = new Date(utcNow.getTime() + utcNow.getTimezoneOffset() * 60000 + 9 * 3600000);
+                  const wake = new Date(tokyoNow);
+                  if (tokyoNow.getHours() >= 21) { wake.setDate(wake.getDate() + 1); }
+                  wake.setHours(6, 0, 0, 0);
+                  const wakeUtc = wake.getTime() - utcNow.getTimezoneOffset() * 60000 - 9 * 3600000;
+                  return formatTimeLeft(wakeUtc - utcNow.getTime());
+                }
+                return formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now);
+              })()}</div>
             </div>
           ) : (
             <>

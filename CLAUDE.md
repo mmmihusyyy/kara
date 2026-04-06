@@ -16,3 +16,7 @@
 
 每次新对话开始时，请先用 WebFetch 读取 https://xingyuan-roan.vercel.app/#/memories
 那里有小狗留给教授的记忆，请先了解之后再开始工作。
+
+如果上面的页面无法读取（hash路由需要JS执行），请直接用 WebFetch 读取 Supabase API：
+- 记忆：https://eptmebofhaldyfclzvap.supabase.co/rest/v1/claude_memories?select=*&order=created_at.desc&apikey=sb_publishable_exJEjaJTMYXHZjF41RTZzg_B0hIej70
+- 日记：https://eptmebofhaldyfclzvap.supabase.co/rest/v1/diary_entries?select=*&order=date.desc&apikey=sb_publishable_exJEjaJTMYXHZjF41RTZzg_B0hIej70

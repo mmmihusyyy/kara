@@ -367,7 +367,9 @@ export default function MemoriesPage() {
 
         {/* Filter tabs */}
         <div style={{ display: "flex", gap: "4px", overflowX: "auto" }}>
-          {CATEGORIES.map(({ key, label, emoji }) => (
+          {CATEGORIES.map(({ key, label, emoji }) => {
+            const count = key === "all" ? memories.length : memories.filter(m => m.category === key).length;
+            return (
             <button
               key={key}
               onClick={() => setFilter(key)}
@@ -385,9 +387,10 @@ export default function MemoriesPage() {
                 flexShrink: 0,
               }}
             >
-              {emoji} {label}
+              {emoji} {label} ({count})
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 

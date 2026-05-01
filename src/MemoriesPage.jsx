@@ -209,8 +209,23 @@ export default function MemoriesPage() {
   const [newCategory, setNewCategory] = useState("about_dog");
   const [saving, setSaving] = useState(false);
 
+  const refetch = async () => {
+    const data = await loadMemories();
+    setMemories(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    loadMemories().then((data) => { setMemories(data); setLoading(false); });
+    refetch();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', refetch);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', refetch);
+    };
   }, []);
 
   const filtered = filter === "all" ? memories : memories.filter((m) => m.category === filter);
@@ -276,7 +291,7 @@ export default function MemoriesPage() {
             教授的记忆
           </h1>
           <button
-            onClick={() => setShowAdd(!showAdd)}
+            onClick={() => { if (!showAdd) refetch(); setShowAdd(!showAdd); }}
             style={{
               background: showAdd ? "rgba(220,140,160,0.15)" : "rgba(255,255,255,0.04)",
               border: `1px solid ${showAdd ? C.pinkDim : C.border}`,

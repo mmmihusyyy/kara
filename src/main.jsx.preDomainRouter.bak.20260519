@@ -13,13 +13,7 @@ function useHash() {
 
 function Router() {
   const hash = useHash();
-  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
 
-  // Hostname-based routing for starwell.space subdomains
-  if (hostname === "memory.starwell.space") return <MemoriesPage />;
-  if (hostname === "kara.starwell.space") return <App />;
-
-  // Legacy hash-based routing fallback (old URLs xingyuan-roan / dist-lac-ten-73)
   if (hash === "#/memories") return <MemoriesPage />;
   return <App />;
 }

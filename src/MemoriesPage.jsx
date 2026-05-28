@@ -365,7 +365,7 @@ export default function MemoriesPage() {
   };
 
   return (
-    <div className="memory-shell" data-intensity="calm">
+    <div className="memory-shell" data-intensity="normal">
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link

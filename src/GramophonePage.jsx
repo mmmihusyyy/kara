@@ -7,8 +7,8 @@ import { useState, useEffect, useMemo } from "react";
 
 const SUPABASE_URL = "https://eptmebofhaldyfclzvap.supabase.co";
 const SUPABASE_KEY = "sb_publishable_exJEjaJTMYXHZjF41RTZzg_B0hIej70";
-const PHOTO_BUCKET = "uploads";
-const SIGNED_TTL = 3600;
+const API_BASE = "https://api.starwell.space";
+const SESSION_KEY = "sb_session";
 
 const C = {
   bg: "#080c16",
@@ -39,25 +39,27 @@ async function fetchRecords() {
   }
 }
 
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (s.expires_at && s.expires_at * 1000 < Date.now()) return null;
+    return s;
+  } catch { return null; }
+}
+
 async function signPhoto(path) {
   try {
+    const session = loadSession();
+    const bearer = session?.access_token || SUPABASE_KEY;
     const res = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/sign/${PHOTO_BUCKET}/${path}`,
-      {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ expiresIn: SIGNED_TTL }),
-      }
+      `${API_BASE}/api/uploads/${path.split("/").map(encodeURIComponent).join("/")}/signed`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${bearer}` } }
     );
     if (!res.ok) return null;
     const json = await res.json();
-    const signed = json.signedURL || json.signedUrl;
-    if (!signed) return null;
-    return `${SUPABASE_URL}/storage/v1${signed.startsWith("/") ? "" : "/"}${signed}`;
+    return json.url || json.signedURL || json.signedUrl || null;
   } catch {
     return null;
   }

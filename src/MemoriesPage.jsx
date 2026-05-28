@@ -429,16 +429,16 @@ export default function MemoriesPage() {
         padding: "16px 16px 12px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-          <a href="#/" style={{ color: C.textFaint, textDecoration: "none", fontSize: "18px", lineHeight: 1, padding: "4px" }}>←</a>
           <h1 style={{
             margin: 0,
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 300,
             fontSize: "22px",
+            letterSpacing: "2px",
             color: C.pink,
             flex: 1,
           }}>
-            教授的记忆
+            Only Node
           </h1>
           <a
             href="#/gramophone"

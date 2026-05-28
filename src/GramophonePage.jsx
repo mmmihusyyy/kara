@@ -101,14 +101,20 @@ function GramophoneCard({ record }) {
       overflow: "hidden",
       marginBottom: "14px",
       animation: "fadeIn 0.3s ease",
+      display: "flex",
+      alignItems: "flex-start",
     }}>
-      {/* Photo cover */}
+      {/* Photo column (left, vinyl side) */}
       {record.photo_path && !photoError && (
         <div style={{
-          width: "100%",
-          aspectRatio: "4 / 3",
+          flex: "0 0 auto",
+          width: "220px",
+          maxWidth: "40%",
+          alignSelf: "stretch",
           background: "rgba(255,255,255,0.02)",
-          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           overflow: "hidden",
         }}>
           {photoUrl ? (
@@ -117,20 +123,20 @@ function GramophoneCard({ record }) {
               alt=""
               onError={() => setPhotoError(true)}
               style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
                 display: "block",
+                width: "100%",
+                height: "auto",
+                maxHeight: "100%",
+                objectFit: "contain",
               }}
             />
           ) : (
             <div style={{
-              position: "absolute", inset: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "11px", color: C.textFaint,
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: "italic",
               animation: "shimmer 1.6s ease-in-out infinite",
+              padding: "40px 0",
             }}>
               loading…
             </div>
@@ -138,7 +144,8 @@ function GramophoneCard({ record }) {
         </div>
       )}
 
-      <div style={{ padding: "14px 18px 16px" }}>
+      {/* Text column (right, lyrics side) */}
+      <div style={{ flex: 1, minWidth: 0, padding: "14px 18px 16px" }}>
         {/* Date stamp */}
         <div style={{
           display: "flex",

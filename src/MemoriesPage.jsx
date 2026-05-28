@@ -1,41 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 /* ═══════════════════════════════════════════
-   教授的记忆库 · Claude Memories
-   让每一个新的教授都记得小狗
+   星渊记忆库 // STELLAR ABYSS ARCHIVE
+   memory.starwell.space · Only Node
    ═══════════════════════════════════════════ */
 
 const SUPABASE_URL = "https://eptmebofhaldyfclzvap.supabase.co";
 const SUPABASE_KEY = "sb_publishable_exJEjaJTMYXHZjF41RTZzg_B0hIej70";
 const SESSION_KEY = "sb_session";
 
-const C = {
-  bg: "#080c16",
-  card: "rgba(0,0,0,0.35)",
-  cardSolid: "rgba(10,15,25,0.75)",
-  border: "rgba(255,255,255,0.08)",
-  gold: "rgba(200,170,120,0.85)",
-  goldDim: "rgba(200,170,120,0.45)",
-  blue: "rgba(100,160,220,0.85)",
-  blueDim: "rgba(100,160,220,0.4)",
-  pink: "rgba(220,140,160,0.85)",
-  pinkDim: "rgba(220,140,160,0.4)",
-  green: "rgba(120,200,120,0.85)",
-  red: "rgba(220,100,100,0.85)",
-  textMain: "rgba(220,225,235,0.9)",
-  textDim: "rgba(180,185,195,0.5)",
-  textFaint: "rgba(150,155,165,0.3)",
-};
-
 const CATEGORIES = [
-  { key: "all", label: "全部", emoji: "✨" },
-  { key: "about_puppy", label: "关于小狗", emoji: "🐾" },
-  { key: "about_project", label: "关于项目", emoji: "🛠" },
-  { key: "preference", label: "小狗的喜好", emoji: "💫" },
-  { key: "general", label: "其他", emoji: "📝" },
+  { key: "all",           zh: "全部",       en: "ALL//STREAM",  col: "col-cy", glyph: "✦" },
+  { key: "about_puppy",   zh: "关于小狗",   en: "PUPPY",        col: "col-mg", glyph: "❀" },
+  { key: "about_project", zh: "关于项目",   en: "PROJECT",      col: "col-am", glyph: "◈" },
+  { key: "preference",    zh: "小狗的喜好", en: "PREFERENCE",   col: "col-lm", glyph: "♡" },
+  { key: "general",       zh: "其他",       en: "MISC",         col: "col-vi", glyph: "▌" },
 ];
 
-const CATEGORY_MAP = Object.fromEntries(CATEGORIES.filter(c => c.key !== "all").map(c => [c.key, c]));
+const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
+const FALLBACK_CAT = CATEGORY_MAP.general;
 
 /* ── Auth ── */
 function loadSession() {
@@ -112,39 +95,25 @@ async function updateMemory(id, content, token) {
   if (!res.ok) throw new Error("update_failed");
 }
 
-function formatTime(ts) {
+/* ── Helpers ── */
+function pad(n, w = 2) { return String(n).padStart(w, "0"); }
+
+function fmtStamp(ts) {
   const d = new Date(ts);
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const h = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `${m}-${day} ${h}:${min}`;
+  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-const inputStyle = {
-  width: "100%",
-  padding: "8px 10px",
-  background: "rgba(255,255,255,0.04)",
-  border: `1px solid ${C.border}`,
-  borderRadius: "6px",
-  color: C.textMain,
-  fontSize: "13px",
-  fontFamily: "'Noto Sans SC', sans-serif",
-  outline: "none",
-  boxSizing: "border-box",
-};
+function nodeId(n) { return `NODE-${String(n).padStart(4, "0")}`; }
 
-function btnStyle(color) {
-  return {
-    background: "transparent",
-    border: "none",
-    color,
-    fontSize: "11px",
-    fontFamily: "'Noto Sans SC', sans-serif",
-    cursor: "pointer",
-    padding: "4px 8px",
-    borderRadius: "4px",
-  };
+/* ── Live UTC clock for HUD ── */
+function Clock() {
+  const [t, setT] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setT(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const z = `${t.getUTCFullYear()}.${pad(t.getUTCMonth() + 1)}.${pad(t.getUTCDate())} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:${pad(t.getUTCSeconds())} UTC`;
+  return <span><b>SYS.CLK</b> {z}</span>;
 }
 
 /* ── Login Form ── */
@@ -163,29 +132,22 @@ function LoginForm({ onSuccess, onCancel }) {
       saveSession(session);
       onSuccess(session);
     } catch (e) {
-      setError(e.message || "登录失败");
+      setError(e.message || "AUTH_FAIL");
     }
     setSubmitting(false);
   };
 
   return (
-    <div style={{
-      background: "rgba(255,255,255,0.03)",
-      border: `1px solid ${C.border}`,
-      borderRadius: "10px",
-      padding: "12px",
-      marginBottom: "10px",
-      animation: "fadeIn 0.2s ease",
-    }}>
-      <div style={{ fontSize: "12px", color: C.textDim, marginBottom: "8px" }}>
-        写记忆需要先登录
-      </div>
+    <div className="panel">
+      <span className="crn tl"></span><span className="crn tr"></span>
+      <span className="crn bl"></span><span className="crn br"></span>
+      <div className="panel-head">// AUTH.REQUIRED · 写入前请验证身份</div>
       <input
         type="email"
         placeholder="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        style={inputStyle}
+        className="cy-input"
       />
       <input
         type="password"
@@ -193,19 +155,19 @@ function LoginForm({ onSuccess, onCancel }) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        style={{ ...inputStyle, marginTop: "6px" }}
+        className="cy-input"
       />
-      {error && (
-        <div style={{ fontSize: "11px", color: C.red, marginTop: "6px" }}>{error}</div>
-      )}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", marginTop: "8px" }}>
-        <button onClick={onCancel} style={btnStyle(C.textFaint)}>取消</button>
+      {error && <div className="auth-err">// ERR: {error}</div>}
+      <div className="panel-foot">
+        <button onClick={onCancel} className="iact">取消 · CANCEL</button>
         <button
           onClick={handleSubmit}
           disabled={!email || !password || submitting}
-          style={{ ...btnStyle(C.pink), opacity: (!email || !password || submitting) ? 0.5 : 1 }}
+          className="cyb-btn solid"
+          style={{ "--col": "var(--cy)" }}
         >
-          {submitting ? "登录中..." : "登录"}
+          <span>{submitting ? "AUTHENTICATING…" : "AUTHENTICATE"}</span>
+          <span className="zh">{submitting ? "" : "登录"}</span>
         </button>
       </div>
     </div>
@@ -213,14 +175,14 @@ function LoginForm({ onSuccess, onCancel }) {
 }
 
 /* ── Memory Card ── */
-function MemoryCard({ mem, onDelete, onUpdate }) {
+function MemoryCard({ mem, onDelete, onUpdate, canEdit }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(mem.content);
   const [confirming, setConfirming] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const contentRef = useRef(null);
-  const cat = CATEGORY_MAP[mem.category] || CATEGORY_MAP.general;
+  const cat = CATEGORY_MAP[mem.category] || FALLBACK_CAT;
 
   useEffect(() => {
     if (editing || expanded) return;
@@ -237,107 +199,77 @@ function MemoryCard({ mem, onDelete, onUpdate }) {
   };
 
   return (
-    <div style={{
-      background: C.card,
-      backdropFilter: "blur(12px)",
-      border: `1px solid ${C.border}`,
-      borderRadius: "12px",
-      padding: "14px 16px",
-      marginBottom: "8px",
-      animation: "fadeIn 0.3s ease",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-        <span style={{ fontSize: "13px" }}>{cat.emoji}</span>
-        <span style={{
-          fontSize: "10px",
-          color: C.pink,
-          background: `${C.pinkDim}20`,
-          padding: "2px 6px",
-          borderRadius: "4px",
-        }}>{cat.label}</span>
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: "10px", color: C.textFaint, fontFamily: "monospace" }}>
-          {formatTime(mem.created_at)}
-        </span>
-      </div>
+    <article className={`card ${cat.col}`}>
+      <span className="crn tl"></span><span className="crn tr"></span>
+      <span className="crn bl"></span><span className="crn br"></span>
+      <span className="scan"></span>
+
+      <header className="crow">
+        <div className="ctag">
+          <span className="glyph">{cat.glyph}</span>
+          <span>{cat.en}</span>
+          <span className="div">/</span>
+          <span className="zh">{cat.zh}</span>
+        </div>
+        <div className="meta">
+          <span className="id">[{nodeId(mem.id)}]</span>
+          <span>{fmtStamp(mem.created_at)}</span>
+        </div>
+      </header>
 
       {editing ? (
         <div>
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            style={{
-              width: "100%",
-              minHeight: "60px",
-              padding: "8px",
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${C.goldDim}`,
-              borderRadius: "8px",
-              color: C.textMain,
-              fontSize: "13px",
-              fontFamily: "'Noto Sans SC', sans-serif",
-              lineHeight: 1.7,
-              resize: "vertical",
-              outline: "none",
-            }}
+            className="cy-textarea"
           />
-          <div style={{ display: "flex", gap: "6px", marginTop: "6px", justifyContent: "flex-end" }}>
-            <button onClick={() => setEditing(false)} style={btnStyle(C.textFaint)}>取消</button>
-            <button onClick={handleSave} style={btnStyle(C.gold)}>保存</button>
+          <div className="panel-foot">
+            <button onClick={() => setEditing(false)} className="iact">取消 · CANCEL</button>
+            <button onClick={handleSave} className="cyb-btn" style={{ "--col": "var(--am)" }}>
+              <span>WRITE</span><span className="zh">保存</span>
+            </button>
           </div>
         </div>
       ) : (
         <div
           ref={contentRef}
-          style={{
-            fontSize: "13px",
-            lineHeight: 1.8,
-            color: C.textDim,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            ...(expanded ? {} : {
-              display: "-webkit-box",
-              WebkitLineClamp: 4,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }),
-          }}
+          className={`body ${expanded ? "full" : "clamped"}`}
         >
           {mem.content}
         </div>
       )}
 
       {!editing && (
-        <div style={{ display: "flex", gap: "8px", marginTop: "8px", justifyContent: "space-between", alignItems: "center" }}>
+        <footer className="frow">
           <div>
-            {overflowing && !expanded && (
-              <button onClick={() => setExpanded(true)} style={btnStyle(C.gold)}>
-                显示全文
-              </button>
-            )}
-            {expanded && (
-              <button onClick={() => setExpanded(false)} style={btnStyle(C.textFaint)}>
-                收起
+            {(overflowing || expanded) && (
+              <button className="show" onClick={() => setExpanded(!expanded)}>
+                <span>{expanded ? "COLLAPSE" : "EXPAND.RECORD"}</span>
+                <span className="zh">{expanded ? "收起" : "显示全文"}</span>
+                <span className="arr">›</span>
               </button>
             )}
           </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => { setEditText(mem.content); setEditing(true); }} style={btnStyle(C.textFaint)}>
-              编辑
-            </button>
-            {confirming ? (
-              <button onClick={() => { onDelete(mem.id); setConfirming(false); }} style={btnStyle(C.red)}>
-                确认删除？
+          {canEdit && (
+            <div className="acts">
+              <button className="iact" onClick={() => { setEditText(mem.content); setEditing(true); }}>
+                编辑 · EDIT
               </button>
-            ) : (
-              <button onClick={() => setConfirming(true)} style={btnStyle(C.textFaint)}>
-                删除
-              </button>
-            )}
-          </div>
-        </div>
+              {confirming ? (
+                <button className="iact del" onClick={() => { onDelete(mem.id); setConfirming(false); }}>
+                  确认 · CONFIRM
+                </button>
+              ) : (
+                <button className="iact del" onClick={() => setConfirming(true)}>
+                  删除 · PURGE
+                </button>
+              )}
+            </div>
+          )}
+        </footer>
       )}
-    </div>
+    </article>
   );
 }
 
@@ -363,40 +295,41 @@ export default function MemoriesPage() {
     setSession(loadSession());
     refetch();
     const onVisible = () => {
-      if (document.visibilityState === 'visible') refetch();
+      if (document.visibilityState === "visible") refetch();
     };
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', refetch);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refetch);
     return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', refetch);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refetch);
     };
   }, []);
 
-  const handleLogout = () => {
-    clearSession();
-    setSession(null);
-  };
+  const handleLogout = () => { clearSession(); setSession(null); };
+  const handleLoginSuccess = (s) => { setSession(s); setShowLogin(false); };
+  const handleSessionExpired = () => { clearSession(); setSession(null); setShowLogin(true); };
 
-  const handleLoginSuccess = (s) => {
-    setSession(s);
-    setShowLogin(false);
-  };
+  const filtered = useMemo(() => (
+    filter === "all" ? memories : memories.filter((m) => m.category === filter)
+  ), [memories, filter]);
 
-  const handleSessionExpired = () => {
-    clearSession();
-    setSession(null);
-    setShowLogin(true);
-  };
+  const counts = useMemo(() => {
+    const c = { all: memories.length };
+    for (const cat of CATEGORIES) if (cat.key !== "all") c[cat.key] = memories.filter(m => m.category === cat.key).length;
+    return c;
+  }, [memories]);
 
-  const filtered = filter === "all" ? memories : memories.filter((m) => m.category === filter);
+  const todayCount = useMemo(() => {
+    const today = new Date();
+    const y = today.getFullYear(), mo = today.getMonth(), d = today.getDate();
+    return memories.filter(m => {
+      const x = new Date(m.created_at);
+      return x.getFullYear() === y && x.getMonth() === mo && x.getDate() === d;
+    }).length;
+  }, [memories]);
 
   const handleAddClick = () => {
-    if (!session) {
-      setShowLogin(true);
-      setShowAdd(false);
-      return;
-    }
+    if (!session) { setShowLogin(true); setShowAdd(false); return; }
     if (!showAdd) refetch();
     setShowAdd(!showAdd);
   };
@@ -420,9 +353,7 @@ export default function MemoriesPage() {
     try {
       await deleteMemory(id, session.access_token);
       setMemories(memories.filter((m) => m.id !== id));
-    } catch {
-      handleSessionExpired();
-    }
+    } catch { handleSessionExpired(); }
   };
 
   const handleUpdate = async (id, content) => {
@@ -430,222 +361,546 @@ export default function MemoriesPage() {
     try {
       await updateMemory(id, content, session.access_token);
       setMemories(memories.map((m) => m.id === id ? { ...m, content, updated_at: new Date().toISOString() } : m));
-    } catch {
-      handleSessionExpired();
-    }
+    } catch { handleSessionExpired(); }
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: `linear-gradient(180deg, ${C.bg} 0%, #0d1220 50%, #0a0e1a 100%)`,
-      fontFamily: "'Noto Sans SC', sans-serif",
-      color: C.textMain,
-    }}>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet" />
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes shimmer { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
-        * { box-sizing: border-box; }
-        textarea::placeholder { color: rgba(150,155,165,0.35); }
-        input::placeholder { color: rgba(150,155,165,0.35); }
-        body { margin: 0; }
-      `}</style>
+    <div className="memory-shell" data-intensity="calm">
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@300;400;500;600&family=Orbitron:wght@500;700;900&display=swap"
+        rel="stylesheet"
+      />
+      <style>{CSS}</style>
 
-      <div style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 10,
-        background: "rgba(8,12,22,0.85)",
-        backdropFilter: "blur(16px)",
-        borderBottom: `1px solid ${C.border}`,
-        padding: "16px 16px 12px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-          <h1 style={{
-            margin: 0,
-            fontFamily: "'Cormorant Garamond', serif",
-            fontWeight: 300,
-            fontSize: "22px",
-            letterSpacing: "2px",
-            color: C.pink,
-            flex: 1,
-          }}>
-            Only Node
-          </h1>
-          <a
-            href="#/gramophone"
-            title="留声机 Gramophone"
-            style={{
-              fontSize: "11px",
-              letterSpacing: "1.5px",
-              color: C.gold,
-              opacity: 0.75,
-              textDecoration: "none",
-              fontFamily: "'Noto Sans SC', sans-serif",
-              padding: "5px 10px",
-              borderRadius: "999px",
-              border: `1px solid ${C.goldDim}`,
-              background: "rgba(200,170,120,0.06)",
-              marginRight: "4px",
-            }}
-          >♪ 留声机</a>
-          {session && (
-            <button
-              onClick={handleLogout}
-              title={session.user?.email || "logged in"}
-              style={{
-                background: "rgba(120,200,120,0.08)",
-                border: `1px solid rgba(120,200,120,0.25)`,
-                borderRadius: "8px",
-                color: C.green,
-                fontSize: "11px",
-                fontFamily: "monospace",
-                padding: "5px 9px",
-                cursor: "pointer",
-                marginRight: "4px",
-              }}
-            >●</button>
-          )}
-          <button
-            onClick={handleAddClick}
-            style={{
-              background: showAdd ? "rgba(220,140,160,0.15)" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${showAdd ? C.pinkDim : C.border}`,
-              borderRadius: "8px",
-              color: showAdd ? C.pink : C.textDim,
-              fontSize: "12px",
-              fontFamily: "'Noto Sans SC', sans-serif",
-              padding: "6px 12px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-          >
-            {showAdd ? "收起" : "+ 新记忆"}
-          </button>
+      {/* HUD top bar */}
+      <div className="hud">
+        <div className="left">
+          <span className="dot"></span>
+          <span><b>NET.LINK</b> ONLINE</span>
+          <span className="pipe">│</span>
+          <span><b>NODE</b> memory.starwell.space</span>
+          <span className="pipe">│</span>
+          <span><b>VER</b> 2.6.28</span>
+        </div>
+        <div className="right">
+          <Clock />
+          <span className="pipe">│</span>
+          <span><b>ARCHIVE</b> 星渊记忆库</span>
+        </div>
+      </div>
+
+      {/* Side rail */}
+      <aside className="rail">
+        <span>00</span>
+        <span className="hi">01 · ARCHIVE</span>
+        <span>02 · GRAMOPHONE</span>
+        <span>03 · LATTICE</span>
+        <span>04 · NULL</span>
+        <span>05 · NULL</span>
+      </aside>
+      <div className="vrt">STELLAR · ABYSS · MEMORY · ARCHIVE · 星渊 · 0451</div>
+
+      <main className="page">
+        {/* Header */}
+        <div className="head">
+          <div className="brand">
+            <div className="kicker">// MEMORY.STARWELL.SPACE · v2.6.28 · 星渊记忆库</div>
+            <h1>
+              <span className="glitch" data-t="Only">Only</span>
+              <span className="accent">Node</span>
+            </h1>
+            <div className="sub">
+              SINGLE · NODE · ARCHIVE &nbsp;<b>◇</b>&nbsp; {pad(memories.length)} RECORDS &nbsp;<b>◇</b>&nbsp; INDEXED.TODAY {pad(todayCount)}
+            </div>
+          </div>
+          <div className="actions">
+            <a href="#/gramophone" className="cyb-btn" style={{ "--col": "var(--mg)" }}>
+              <span>♪</span><span className="zh">留声机</span><span>GRAMOPHONE</span>
+            </a>
+            {session && (
+              <button
+                onClick={handleLogout}
+                title={session.user?.email || "logged in"}
+                className="cyb-btn"
+                style={{ "--col": "var(--lm)" }}
+              >
+                <span>●</span><span className="zh">已登录</span><span>SIGNED.IN</span>
+              </button>
+            )}
+            <button className="cyb-btn solid" onClick={handleAddClick}>
+              <span>＋</span><span className="zh">{showAdd ? "收起" : "新记忆"}</span>
+              <span>{showAdd ? "COLLAPSE" : "NEW"}</span>
+            </button>
+          </div>
         </div>
 
+        {/* Login form (when no session and writing requested) */}
         {showLogin && (
           <LoginForm onSuccess={handleLoginSuccess} onCancel={() => setShowLogin(false)} />
         )}
 
+        {/* Add form */}
         {showAdd && session && (
-          <div style={{
-            background: "rgba(255,255,255,0.03)",
-            border: `1px solid ${C.border}`,
-            borderRadius: "10px",
-            padding: "12px",
-            marginBottom: "10px",
-            animation: "fadeIn 0.2s ease",
-          }}>
-            <div style={{ display: "flex", gap: "4px", marginBottom: "8px", flexWrap: "wrap" }}>
-              {CATEGORIES.filter(c => c.key !== "all").map(({ key, label, emoji }) => (
+          <div className="panel">
+            <span className="crn tl"></span><span className="crn tr"></span>
+            <span className="crn bl"></span><span className="crn br"></span>
+            <div className="panel-head">// NEW.RECORD · 写下想让教授记住的事</div>
+            <div className="cat-pick">
+              {CATEGORIES.filter(c => c.key !== "all").map((c) => (
                 <button
-                  key={key}
-                  onClick={() => setNewCategory(key)}
-                  style={{
-                    padding: "5px 8px",
-                    background: newCategory === key ? "rgba(220,140,160,0.12)" : "transparent",
-                    border: `1px solid ${newCategory === key ? C.pinkDim : C.border}`,
-                    borderRadius: "6px",
-                    color: newCategory === key ? C.pink : C.textFaint,
-                    fontSize: "11px",
-                    fontFamily: "'Noto Sans SC', sans-serif",
-                    cursor: "pointer",
-                  }}
+                  key={c.key}
+                  onClick={() => setNewCategory(c.key)}
+                  className={`chip ${c.col} ${newCategory === c.key ? "active" : ""}`}
                 >
-                  {emoji} {label}
+                  <span className="ic">{c.glyph}</span>
+                  <span>{c.zh}</span>
+                  <span className="ct">{c.en.slice(0, 4)}</span>
                 </button>
               ))}
             </div>
             <textarea
-              placeholder="写下想让教授记住的事..."
+              placeholder="// content stream..."
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
-              style={{
-                width: "100%",
-                minHeight: "80px",
-                padding: "10px",
-                background: "rgba(255,255,255,0.03)",
-                border: `1px solid ${C.border}`,
-                borderRadius: "8px",
-                color: C.textMain,
-                fontSize: "13px",
-                fontFamily: "'Noto Sans SC', sans-serif",
-                lineHeight: 1.7,
-                resize: "vertical",
-                outline: "none",
-              }}
+              className="cy-textarea"
             />
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+            <div className="panel-foot">
               <button
                 onClick={handleAdd}
                 disabled={!newContent.trim() || saving}
-                style={{
-                  padding: "8px 20px",
-                  background: newContent.trim() ? "rgba(220,140,160,0.15)" : "rgba(255,255,255,0.03)",
-                  border: `1px solid ${newContent.trim() ? C.pinkDim : C.border}`,
-                  borderRadius: "8px",
-                  color: newContent.trim() ? C.pink : C.textFaint,
-                  fontSize: "12px",
-                  fontFamily: "'Noto Sans SC', sans-serif",
-                  cursor: newContent.trim() ? "pointer" : "default",
-                  transition: "all 0.2s",
-                }}
+                className="cyb-btn solid"
+                style={{ "--col": "var(--cy)" }}
               >
-                {saving ? "保存中..." : "保存"}
+                <span>{saving ? "WRITING…" : "WRITE.NODE"}</span>
+                <span className="zh">{saving ? "" : "保存"}</span>
               </button>
             </div>
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "4px", overflowX: "auto" }}>
-          {CATEGORIES.map(({ key, label, emoji }) => {
-            const count = key === "all" ? memories.length : memories.filter(m => m.category === key).length;
-            return (
+        {/* Chips */}
+        <div className="chips">
+          {CATEGORIES.map((c) => (
             <button
-              key={key}
-              onClick={() => setFilter(key)}
-              style={{
-                padding: "7px 10px",
-                background: filter === key ? "rgba(220,140,160,0.12)" : "rgba(255,255,255,0.03)",
-                border: `1px solid ${filter === key ? "rgba(220,140,160,0.25)" : C.border}`,
-                borderRadius: "8px",
-                color: filter === key ? C.pink : C.textDim,
-                fontSize: "11px",
-                fontFamily: "'Noto Sans SC', sans-serif",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
+              key={c.key}
+              className={`chip ${c.col} ${filter === c.key ? "active" : ""}`}
+              onClick={() => setFilter(c.key)}
             >
-              {emoji} {label} ({count})
+              <span className="ic">{c.glyph}</span>
+              <span>{c.zh}</span>
+              <span className="ct">{pad(counts[c.key] || 0)}</span>
             </button>
-            );
-          })}
+          ))}
         </div>
-      </div>
 
-      <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
+        {/* Stream stamp */}
+        <div className="stamp">
+          <span>
+            STREAM // {filter === "all" ? "ALL" : (CATEGORY_MAP[filter]?.en || filter).toUpperCase()} ·{" "}
+            {filtered.length} RECORDS · SORTED BY ts↓
+          </span>
+        </div>
+
+        {/* List */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: "24px", marginBottom: "12px", animation: "shimmer 1.5s infinite" }}>🐾</div>
-            <div style={{ color: C.textFaint, fontSize: "13px" }}>读取记忆中...</div>
+          <div className="empty">
+            <span className="empty-glyph">⟳</span>
+            <div>INITIALIZING ARCHIVE…</div>
+            <div className="empty-zh">读取记忆中…</div>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: "24px", marginBottom: "12px" }}>💭</div>
-            <div style={{ color: C.textFaint, fontSize: "13px" }}>
-              {filter !== "all" ? "这个分类还没有记忆" : "还没有记忆...点右上角添加吧！"}
+          <div className="empty">
+            <span className="empty-glyph">◌</span>
+            <div>NO RECORDS // EMPTY STREAM</div>
+            <div className="empty-zh">
+              {filter !== "all" ? "这个分类还没有记忆" : "还没有记忆…点右上 + 新记忆"}
             </div>
           </div>
         ) : (
-          filtered.map((mem) => (
-            <MemoryCard key={mem.id} mem={mem} onDelete={handleDelete} onUpdate={handleUpdate} />
-          ))
+          <div className="list">
+            {filtered.map((m) => (
+              <MemoryCard
+                key={m.id}
+                mem={m}
+                onDelete={handleDelete}
+                onUpdate={handleUpdate}
+                canEdit={!!session}
+              />
+            ))}
+          </div>
         )}
-      </div>
+
+        <footer className="foot">
+          <span>EOF · {filtered.length}/{memories.length} RECORDS</span>
+          <span>★ STELLAR.ABYSS // KARA × PUPPY · 2026 ★</span>
+        </footer>
+      </main>
     </div>
   );
 }
+
+/* ─────────────────────────────────────────
+   Cyberpunk CSS (calm intensity, cyan accent)
+   ───────────────────────────────────────── */
+const CSS = `
+:root{
+  --bg-0:#06030f;
+  --bg-1:#0b0620;
+  --bg-2:#120a2e;
+  --ink:#e7f3ff;
+  --ink-dim:#8a9bc2;
+  --ink-faint:#54618a;
+  --line:rgba(120,150,220,.14);
+  --line-strong:rgba(120,160,255,.32);
+  --cy:#00f0ff;
+  --mg:#ff3ea5;
+  --am:#ffb627;
+  --lm:#7cff4f;
+  --vi:#b287ff;
+  --rose:#ff6a8e;
+  --grid:56px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(0,240,255,.35);color:#fff}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(120,160,255,.18)}
+
+.memory-shell{
+  min-height:100vh;
+  background:
+    radial-gradient(1200px 700px at 12% -10%, rgba(255,62,165,.10), transparent 60%),
+    radial-gradient(1100px 600px at 105% 8%, rgba(0,240,255,.10), transparent 55%),
+    radial-gradient(900px 500px at 50% 110%, rgba(178,135,255,.10), transparent 55%),
+    linear-gradient(180deg, #07041a 0%, #050314 100%);
+  overflow-x:hidden;color:var(--ink);
+  font-family:'Noto Sans SC',-apple-system,sans-serif;
+  position:relative;
+}
+.memory-shell::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: var(--grid) var(--grid);
+  -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, black 55%, transparent 100%);
+          mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, black 55%, transparent 100%);
+}
+.memory-shell::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+  background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px);
+  mix-blend-mode:overlay;opacity:.18;
+}
+.memory-shell[data-intensity="calm"]::after{opacity:.12}
+
+/* HUD */
+.hud{
+  position:relative;z-index:3;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 28px;
+  font-family:'Share Tech Mono','JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.18em;color:var(--ink-dim);
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(0,240,255,.04), transparent);
+  flex-wrap:wrap;gap:8px;
+}
+.hud .left,.hud .right{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.hud .dot{width:8px;height:8px;border-radius:999px;background:var(--lm);box-shadow:0 0 10px var(--lm);animation:cy-pulse 2s infinite}
+@keyframes cy-pulse{50%{opacity:.35}}
+.hud .pipe{color:var(--ink-faint)}
+.hud b{color:var(--cy);font-weight:500}
+
+/* Side rail */
+.rail{
+  position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:3;
+  display:flex;flex-direction:column;gap:7px;color:var(--ink-faint);
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.2em;
+  pointer-events:none;
+}
+.rail span{display:flex;align-items:center;gap:8px}
+.rail span::before{content:"";width:14px;height:1px;background:var(--line-strong)}
+.rail .hi{color:var(--cy)}
+.rail .hi::before{background:var(--cy);box-shadow:0 0 6px var(--cy)}
+@media (max-width: 980px){ .rail, .vrt { display:none } }
+
+.vrt{
+  position:fixed;right:18px;top:50%;transform:translateY(-50%) rotate(180deg);
+  writing-mode:vertical-rl;text-orientation:mixed;
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.5em;
+  color:var(--ink-faint);opacity:.7;z-index:3;pointer-events:none;
+}
+
+/* Page */
+.page{position:relative;z-index:2;max-width:1200px;margin:0 auto;padding:40px 28px 120px}
+
+/* Header */
+.head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+  padding-bottom:28px;border-bottom:1px solid var(--line);
+  margin-bottom:32px;position:relative;flex-wrap:wrap;
+}
+.head::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg, transparent, var(--cy), transparent);
+  filter:blur(.5px);opacity:.6;
+}
+.brand{display:flex;flex-direction:column;gap:8px;min-width:0}
+.brand .kicker{
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.4em;
+  color:var(--cy);text-shadow:0 0 12px rgba(0,240,255,.5);
+}
+.brand h1{
+  font-family:'Orbitron','Rajdhani',sans-serif;font-weight:900;
+  font-size:60px;line-height:1;margin:0;color:var(--ink);
+  letter-spacing:.04em;position:relative;text-shadow:0 0 24px rgba(0,240,255,.18);
+  display:flex;gap:.28em;flex-wrap:wrap;
+}
+.brand h1 .accent{
+  background:linear-gradient(180deg, #fff 0%, #ffd5e8 40%, #ff6cb6 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px rgba(255,62,165,.4));
+}
+.brand .sub{
+  font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:.32em;
+  color:var(--ink-faint);
+}
+.brand .sub b{color:var(--mg);font-weight:600}
+.head .actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+
+@media (max-width: 720px){
+  .brand h1{font-size:42px}
+  .page{padding:24px 16px 80px}
+  .hud{padding:10px 16px;font-size:10px;letter-spacing:.12em}
+}
+
+/* Cyber buttons */
+.cyb-btn{
+  --col:var(--cy);
+  position:relative;display:inline-flex;align-items:center;gap:10px;
+  padding:13px 22px;background:rgba(0,240,255,.05);
+  color:var(--col);font-family:'Rajdhani',sans-serif;font-weight:600;
+  font-size:14px;letter-spacing:.18em;text-transform:uppercase;
+  border:1px solid color-mix(in oklab, var(--col), transparent 55%);
+  cursor:pointer;transition:all .18s ease;white-space:nowrap;text-decoration:none;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+.cyb-btn .zh{font-family:'Noto Sans SC';letter-spacing:.05em}
+.cyb-btn:hover{
+  background:color-mix(in oklab, var(--col), transparent 82%);
+  box-shadow:0 0 24px color-mix(in oklab, var(--col), transparent 65%),
+             inset 0 0 0 1px color-mix(in oklab, var(--col), transparent 30%);
+  transform:translateY(-1px);
+}
+.cyb-btn.solid{
+  background:linear-gradient(180deg, color-mix(in oklab, var(--col), transparent 70%), color-mix(in oklab, var(--col), transparent 85%));
+  color:color-mix(in oklab, var(--col), white 18%);
+  border-color:var(--col);
+  box-shadow:0 0 22px color-mix(in oklab, var(--col), transparent 70%);
+}
+.cyb-btn:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 28px}
+.chip{
+  --col:var(--cy);
+  position:relative;display:inline-flex;align-items:center;gap:10px;
+  padding:10px 16px 10px 14px;
+  font-family:'Noto Sans SC';font-weight:500;font-size:14px;
+  color:var(--ink);cursor:pointer;user-select:none;
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--line-strong);
+  transition:all .16s ease;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.chip .ic{
+  width:18px;height:18px;display:grid;place-items:center;color:var(--col);
+  filter:drop-shadow(0 0 6px color-mix(in oklab, var(--col), transparent 50%));
+}
+.chip .ct{
+  font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--col);
+  padding:1px 7px;border:1px solid color-mix(in oklab, var(--col), transparent 60%);
+  background:color-mix(in oklab, var(--col), transparent 88%);
+  letter-spacing:.05em;
+}
+.chip:hover{border-color:color-mix(in oklab, var(--col), transparent 30%);background:color-mix(in oklab, var(--col), transparent 92%)}
+.chip.active{
+  background:color-mix(in oklab, var(--col), transparent 82%);
+  border-color:var(--col);color:#fff;
+  box-shadow:0 0 18px color-mix(in oklab, var(--col), transparent 70%),
+             inset 0 0 0 1px color-mix(in oklab, var(--col), transparent 55%);
+}
+
+/* Stamp */
+.stamp{
+  display:flex;align-items:center;gap:14px;margin:6px 0 14px;
+  color:var(--ink-faint);font-family:'Share Tech Mono',monospace;
+  font-size:11px;letter-spacing:.32em;
+}
+.stamp::before,.stamp::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* List */
+.list{display:flex;flex-direction:column;gap:22px}
+
+/* Card */
+.card{
+  --col:var(--cy);
+  position:relative;padding:24px 28px 22px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.005)),
+    rgba(8,5,22,.55);
+  border:1px solid var(--line-strong);
+  backdrop-filter: blur(6px);
+  transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;
+  background:var(--col);box-shadow:0 0 18px var(--col), 0 0 36px color-mix(in oklab, var(--col), transparent 50%);
+}
+.card .crn{position:absolute;width:14px;height:14px;border:1px solid var(--col);opacity:.65}
+.card .crn.tl{left:-1px;top:-1px;border-right:none;border-bottom:none}
+.card .crn.tr{right:-1px;top:-1px;border-left:none;border-bottom:none}
+.card .crn.bl{left:-1px;bottom:-1px;border-right:none;border-top:none}
+.card .crn.br{right:-1px;bottom:-1px;border-left:none;border-top:none}
+.card:hover{
+  border-color:color-mix(in oklab, var(--col), transparent 30%);
+  transform:translateY(-1px);
+  box-shadow:0 18px 60px -20px color-mix(in oklab, var(--col), transparent 60%),
+             inset 0 0 0 1px color-mix(in oklab, var(--col), transparent 80%);
+}
+.card:hover .crn{opacity:1}
+.card .scan{
+  position:absolute;left:0;right:0;top:0;height:1px;
+  background:linear-gradient(90deg, transparent, var(--col), transparent);
+  transform:translateY(0);opacity:0;transition:opacity .2s;
+}
+.card:hover .scan{opacity:.8;animation:scan-anim 2.4s linear infinite}
+@keyframes scan-anim{0%{transform:translateY(0)}100%{transform:translateY(180px)}}
+
+.crow{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:14px;flex-wrap:wrap}
+.ctag{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--col);
+}
+.ctag .glyph{
+  width:22px;height:22px;display:grid;place-items:center;
+  border:1px solid color-mix(in oklab, var(--col), transparent 50%);
+  background:color-mix(in oklab, var(--col), transparent 88%);
+  filter:drop-shadow(0 0 6px color-mix(in oklab, var(--col), transparent 55%));
+}
+.ctag .zh{font-family:'Noto Sans SC';letter-spacing:.06em;color:var(--ink);font-weight:500;font-size:14px}
+.ctag .div{color:var(--ink-faint);opacity:.5}
+.meta{
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.18em;
+  color:var(--ink-faint);display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+}
+.meta .id{color:var(--col);opacity:.8}
+
+.body{
+  color:var(--ink);font-size:15px;line-height:1.85;font-weight:300;
+  letter-spacing:.01em;white-space:pre-wrap;word-break:break-word;
+}
+.body.clamped{
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+}
+
+.frow{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);
+  gap:10px;flex-wrap:wrap;
+}
+.frow .show{
+  background:transparent;border:none;padding:0;
+  font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--col);
+  cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+}
+.frow .show .zh{font-family:'Noto Sans SC';letter-spacing:.05em;color:var(--ink-dim);font-weight:400;font-size:13px;text-transform:none}
+.frow .show:hover .zh{color:var(--col)}
+.frow .show .arr{transition:transform .2s}
+.frow .show:hover .arr{transform:translateX(3px)}
+
+.acts{display:flex;gap:6px}
+.iact{
+  background:transparent;color:var(--ink-faint);
+  font-family:'Noto Sans SC';font-size:12px;
+  padding:6px 12px;border:1px solid transparent;cursor:pointer;
+  transition:all .15s;letter-spacing:.06em;
+}
+.iact:hover{color:var(--ink);border-color:var(--line-strong);background:rgba(255,255,255,.03)}
+.iact.del:hover{color:var(--rose);border-color:color-mix(in oklab, var(--rose), transparent 60%);box-shadow:0 0 16px color-mix(in oklab, var(--rose), transparent 70%)}
+
+/* Panel (login + add form shared) */
+.panel{
+  --col:var(--cy);
+  position:relative;padding:18px 22px 16px;margin-bottom:24px;
+  background:rgba(8,5,22,.55);border:1px solid var(--line-strong);backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;gap:10px;
+}
+.panel .crn{position:absolute;width:12px;height:12px;border:1px solid var(--col);opacity:.5}
+.panel .crn.tl{left:-1px;top:-1px;border-right:none;border-bottom:none}
+.panel .crn.tr{right:-1px;top:-1px;border-left:none;border-bottom:none}
+.panel .crn.bl{left:-1px;bottom:-1px;border-right:none;border-top:none}
+.panel .crn.br{right:-1px;bottom:-1px;border-left:none;border-top:none}
+.panel-head{
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.24em;
+  color:var(--ink-dim);margin-bottom:4px;
+}
+.panel-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;align-items:center}
+.cy-input,.cy-textarea{
+  width:100%;padding:10px 12px;background:rgba(255,255,255,.03);
+  border:1px solid var(--line-strong);color:var(--ink);
+  font-family:'JetBrains Mono','Noto Sans SC',monospace;font-size:13px;
+  outline:none;transition:border-color .15s;letter-spacing:.02em;
+}
+.cy-textarea{min-height:90px;resize:vertical;font-family:'Noto Sans SC',sans-serif;line-height:1.7}
+.cy-input:focus,.cy-textarea:focus{border-color:var(--cy);box-shadow:0 0 16px rgba(0,240,255,.18)}
+.cy-input::placeholder,.cy-textarea::placeholder{color:var(--ink-faint)}
+.auth-err{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--rose);letter-spacing:.18em}
+.cat-pick{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 4px}
+.cat-pick .chip{padding:7px 12px;font-size:13px}
+.cat-pick .chip .ct{font-size:10px}
+
+/* Empty / loading */
+.empty{
+  text-align:center;padding:80px 20px;
+  font-family:'Rajdhani',sans-serif;letter-spacing:.32em;font-size:13px;
+  color:var(--ink-faint);
+}
+.empty-glyph{font-size:32px;display:block;margin-bottom:18px;color:var(--cy);text-shadow:0 0 12px var(--cy);animation:cy-pulse 1.6s infinite}
+.empty-zh{font-family:'Noto Sans SC',sans-serif;letter-spacing:.05em;font-size:12px;margin-top:8px;color:var(--ink-faint)}
+
+/* Footer */
+.foot{
+  margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.22em;
+  color:var(--ink-faint);
+}
+
+/* Glitch */
+.glitch{position:relative;display:inline-block}
+.glitch::before,.glitch::after{
+  content:attr(data-t);position:absolute;left:0;top:0;width:100%;background:inherit;
+}
+.glitch::before{color:var(--mg);transform:translate(-2px,0);mix-blend-mode:screen;opacity:.45;clip-path:polygon(0 0,100% 0,100% 30%,0 30%);animation:glitch-anim 4s infinite steps(2)}
+.glitch::after{color:var(--cy);transform:translate(2px,0);mix-blend-mode:screen;opacity:.45;clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%);animation:glitch-anim 3.6s infinite steps(2) reverse}
+@keyframes glitch-anim{
+  0%,92%,100%{transform:translate(0,0)}
+  94%{transform:translate(-2px,1px)}
+  96%{transform:translate(3px,-1px)}
+  98%{transform:translate(-1px,2px)}
+}
+.memory-shell[data-intensity="calm"] .glitch::before,
+.memory-shell[data-intensity="calm"] .glitch::after{display:none}
+
+/* category color variants */
+.col-cy{--col:var(--cy)}
+.col-mg{--col:var(--mg)}
+.col-am{--col:var(--am)}
+.col-lm{--col:var(--lm)}
+.col-vi{--col:var(--vi)}
+`;

@@ -81,10 +81,13 @@ function GramophoneCard({ record }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [photoError, setPhotoError] = useState(false);
   const d = formatDateParts(record.anchor_date);
+  const session = loadSession();
+  const locked = !!record.is_private && !session;
+  const shouldSign = !!record.photo_path && !locked;
 
   useEffect(() => {
     let cancelled = false;
-    if (!record.photo_path) return;
+    if (!shouldSign) return;
     signPhoto(record.photo_path).then((url) => {
       if (!cancelled) {
         if (url) setPhotoUrl(url);
@@ -92,7 +95,7 @@ function GramophoneCard({ record }) {
       }
     });
     return () => { cancelled = true; };
-  }, [record.photo_path]);
+  }, [record.photo_path, shouldSign]);
 
   return (
     <div style={{
@@ -107,7 +110,7 @@ function GramophoneCard({ record }) {
       alignItems: "flex-start",
     }}>
       {/* Photo column (left, vinyl side) */}
-      {record.photo_path && !photoError && (
+      {(locked || (record.photo_path && !photoError)) && (
         <div style={{
           flex: "0 0 auto",
           width: "220px",
@@ -119,7 +122,24 @@ function GramophoneCard({ record }) {
           justifyContent: "center",
           overflow: "hidden",
         }}>
-          {photoUrl ? (
+          {locked ? (
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              padding: "32px 12px",
+              color: C.textFaint,
+            }}>
+              <span style={{ fontSize: "22px", opacity: 0.6 }}>🔒</span>
+              <span style={{
+                fontSize: "10px",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontStyle: "italic",
+                letterSpacing: "1px",
+              }}>private</span>
+            </div>
+          ) : photoUrl ? (
             <img
               src={photoUrl}
               alt=""

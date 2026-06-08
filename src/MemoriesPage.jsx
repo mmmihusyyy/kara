@@ -14,7 +14,7 @@ const CATEGORIES = [
   { key: "about_puppy",   zh: "关于小狗",   en: "PUPPY",        col: "col-mg", glyph: "❀" },
   { key: "about_project", zh: "关于项目",   en: "PROJECT",      col: "col-am", glyph: "◈" },
   { key: "preference",    zh: "小狗的喜好", en: "PREFERENCE",   col: "col-lm", glyph: "♡" },
-  { key: "general",       zh: "其他",       en: "MISC",         col: "col-vi", glyph: "▌" },
+  { key: "general",       zh: "随记",       en: "MISC",         col: "col-vi", glyph: "▌" },
 ];
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));

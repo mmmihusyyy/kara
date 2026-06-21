@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════
-   星海孕育 · KARA  ·  少女像素小窝 v2
-   QQ家园 / 养成游戏风 · 亮粉暖调正面卧室
-   紫发星之少女（Q版大眼睛）+ 自主作息 + 桌上盆栽 + 说话气泡
-   全部手绘 inline SVG · 零外部素材
+   星海孕育 · KARA  ·  少女像素小窝 v3
+   QQ家园 / 换装游戏风 · 亮粉暖调正面卧室
+   紫发星之少女（精致 Q 版 · 渐变大眼）+ 自主作息 + 桌上盆栽 + 说话气泡
+   全部手绘 inline SVG · 零外部素材（照参考原创）
    ═══════════════════════════════════════════ */
 
 function getTod(h) {
@@ -20,83 +20,91 @@ const SKY = {
 
 /* ── 调色 ── */
 const OL = "#46324f";
-const HAIR = "#b8a0e8", HAIRD = "#9a7fd2", HAIRH = "#e0d2f8";
-const SKIN = "#ffe1c6";
-const IRIS = "#7d5bcf", PUPIL = "#3c2a5c";
-const BLUSH = "#ffadc6", MOUTH = "#d96a88";
-const DRESS = "#f2ecff", DRESSD = "#ddd0f2";
+const HAIR = "#b8a0e8", HAIRH = "#ece0fc";
+const SKIN = "#ffe3c8", SKINSH = "#f3c6a6";
+const BLUSH = "#ffadc6", MOUTH = "#cf5e7e";
+const DRESS = "#f5efff", DRESSSH = "#ddd0f2";
 const STAR = "#ffd45e", ORB = "#bdeaf7";
-const TIGHTS = "#e9e0f8", SHOE = "#7e5cc6";
+const TIGHTS = "#4f3d72", SHOE = "#6a4aa0";
 const ACC = ["#f7b8d0", "#f6a6c6", "#f48fbc", "#f078ad", "#ee63a6"];
 
-/* 星形 */
 const star = (cx, cy, r, fill, k, stroke) => (
   <polygon key={k} points={[[0, -1], [0.23, -0.31], [0.95, -0.31], [0.37, 0.12], [0.59, 0.81], [0, 0.38], [-0.59, 0.81], [-0.37, 0.12], [-0.95, -0.31], [-0.23, -0.31]].map(([px, py]) => `${(cx + px * r).toFixed(1)},${(cy + py * r).toFixed(1)}`).join(" ")} fill={fill} stroke={stroke || "none"} strokeWidth="0.4" />
 );
 
-/* ── 紫发星之少女（矢量 Q 版，本地 viewBox 40×56，脚在 (20,54)） ── */
-function KaraSprite({ stageIdx = 0, fx, fy, scale = 0.9 }) {
+/* 一只大眼睛（含渐变虹膜+双高光），eye=左/右镜像 */
+function eye(cx) {
+  return (
+    <g>
+      <path d={`M${cx - 4},${24} Q${cx},${21.4} ${cx + 4},${24}`} stroke={OL} strokeWidth="1.7" fill="none" strokeLinecap="round" />
+      <ellipse cx={cx} cy="27.4" rx="3.5" ry="4.3" fill="#fff" stroke={OL} strokeWidth="0.7" />
+      <ellipse cx={cx} cy="27.8" rx="3.05" ry="3.8" fill="url(#irisGrad)" />
+      <ellipse cx={cx} cy="28.4" rx="1.45" ry="1.95" fill="#2a1c44" />
+      <circle cx={cx + 1.4} cy="25.7" r="1.35" fill="#fff" />
+      <circle cx={cx - 1.5} cy="29.6" r="0.85" fill="#fff" opacity="0.92" />
+      <circle cx={cx - 0.5} cy="27.3" r="0.35" fill="#fff" />
+      <path d={`M${cx - 2.6},${30.6} Q${cx},${31.6} ${cx + 2.6},${30.6}`} stroke="#ffd0e6" strokeWidth="0.5" fill="none" opacity="0.6" />
+    </g>
+  );
+}
+
+/* ── 紫发星之少女（矢量 Q 版，本地 48×64，脚在 (24,62)） ── */
+function KaraSprite({ stageIdx = 0, fx, fy, scale = 0.82 }) {
   const st = Math.max(0, Math.min(4, stageIdx));
-  const sc = scale * (1 + st * 0.03);
+  const sc = scale * (1 + st * 0.025);
   const acc = ACC[st];
   return (
-    <g transform={`translate(${(fx - 20 * sc).toFixed(1)},${(fy - 54 * sc).toFixed(1)}) scale(${sc.toFixed(3)})`}>
-      <ellipse cx="20" cy="53.5" rx="11" ry="2.2" fill="rgba(140,110,150,0.22)" />
-      <ellipse cx="20" cy="24" rx="17" ry="20" fill="url(#karaAura)" opacity={0.1 + st * 0.05} />
+    <g transform={`translate(${(fx - 24 * sc).toFixed(1)},${(fy - 62 * sc).toFixed(1)}) scale(${sc.toFixed(3)})`}>
+      <ellipse cx="24" cy="61.3" rx="12" ry="2.3" fill="rgba(120,90,140,0.22)" />
+      <ellipse cx="24" cy="27" rx="20" ry="23" fill="url(#karaAura)" opacity={0.1 + st * 0.05} />
       <g className="kara-bob">
-        {/* 后发 */}
-        <path d="M20,6 C8,6 5,16 6,26 C6,34 8,43 11,47 L29,47 C32,43 34,34 34,26 C35,16 32,6 20,6 Z" fill={HAIR} stroke={OL} strokeWidth="1.1" />
-        {/* 身体：袖子 / 裙子 / 手脚 */}
-        <ellipse cx="10" cy="40" rx="3.6" ry="3.1" fill={DRESS} stroke={OL} strokeWidth="0.8" />
-        <ellipse cx="30" cy="40" rx="3.6" ry="3.1" fill={DRESS} stroke={OL} strokeWidth="0.8" />
-        <path d="M13,37 C13,35 27,35 27,37 L31,51 C20,54 9,51 9,51 Z" fill={DRESS} stroke={OL} strokeWidth="1" />
-        <path d="M21,36 L22.5,51 L20,51 Z" fill={DRESSD} opacity="0.5" />
-        <path d="M9,51 q2.7,2 5.5,0 q2.7,2 5.5,0 q2.7,2 5.5,0 q2.7,2 5,0" fill={DRESS} stroke={OL} strokeWidth="0.7" />
-        <circle cx="8.6" cy="43" r="1.8" fill={SKIN} stroke={OL} strokeWidth="0.6" />
-        <circle cx="31.4" cy="43" r="1.8" fill={SKIN} stroke={OL} strokeWidth="0.6" />
-        <rect x="16.6" y="49.5" width="3" height="4.2" rx="1" fill={TIGHTS} stroke={OL} strokeWidth="0.6" />
-        <rect x="20.4" y="49.5" width="3" height="4.2" rx="1" fill={TIGHTS} stroke={OL} strokeWidth="0.6" />
-        <ellipse cx="18" cy="54" rx="2.3" ry="1.4" fill={SHOE} stroke={OL} strokeWidth="0.6" />
-        <ellipse cx="22" cy="54" rx="2.3" ry="1.4" fill={SHOE} stroke={OL} strokeWidth="0.6" />
-        {/* 领子 + 胸前蝴蝶结 + 星 */}
-        <ellipse cx="20" cy="36" rx="5" ry="2" fill="#ffffff" stroke={OL} strokeWidth="0.8" />
-        {star(20, 41, 2.4, STAR, "cs", OL)}
-        <path d="M20,36 L16,34 L16,38 Z" fill={acc} stroke={OL} strokeWidth="0.5" />
-        <path d="M20,36 L24,34 L24,38 Z" fill={acc} stroke={OL} strokeWidth="0.5" />
-        <circle cx="20" cy="36" r="1" fill={acc} stroke={OL} strokeWidth="0.4" />
-        {/* 脸 */}
-        <ellipse cx="20" cy="22" rx="11" ry="11.5" fill={SKIN} stroke={OL} strokeWidth="1.1" />
-        {/* 前侧发束 + 发饰星 */}
-        <path d="M9,16 C7,24 8,34 10,40 C7.5,34 6.2,24 8,16 Z" fill={HAIR} stroke={OL} strokeWidth="0.9" />
-        <path d="M31,16 C33,24 32,34 30,40 C32.5,34 33.8,24 32,16 Z" fill={HAIR} stroke={OL} strokeWidth="0.9" />
-        {star(10, 30, 1.6, STAR, "hl", OL)}
-        {star(30, 30, 1.6, STAR, "hr", OL)}
-        {/* 刘海 */}
-        <path d="M9,17 C9,9 13,6 20,6 C27,6 31,9 31,17 C28,13 24,12 20,16 C16,12 12,13 9,17 Z" fill={HAIR} stroke={OL} strokeWidth="1.1" />
-        <ellipse cx="15" cy="12" rx="4" ry="2" fill={HAIRH} opacity="0.6" />
-        {/* 眼睛（大） */}
-        <path d="M12.3,20.4 Q15,19.2 17.7,20.4" stroke={OL} strokeWidth="0.9" fill="none" strokeLinecap="round" />
-        <ellipse cx="15" cy="22.6" rx="2.7" ry="3.3" fill="#fff" stroke={OL} strokeWidth="0.8" />
-        <circle cx="15" cy="23" r="2.3" fill={IRIS} />
-        <circle cx="15" cy="23.4" r="1.1" fill={PUPIL} />
-        <circle cx="16.1" cy="21.7" r="0.9" fill="#fff" />
-        <circle cx="14" cy="24" r="0.5" fill="#fff" opacity="0.8" />
-        <path d="M22.3,20.4 Q25,19.2 27.7,20.4" stroke={OL} strokeWidth="0.9" fill="none" strokeLinecap="round" />
-        <ellipse cx="25" cy="22.6" rx="2.7" ry="3.3" fill="#fff" stroke={OL} strokeWidth="0.8" />
-        <circle cx="25" cy="23" r="2.3" fill={IRIS} />
-        <circle cx="25" cy="23.4" r="1.1" fill={PUPIL} />
-        <circle cx="26.1" cy="21.7" r="0.9" fill="#fff" />
-        <circle cx="24" cy="24" r="0.5" fill="#fff" opacity="0.8" />
-        {/* 腮红 + 嘴 */}
-        <ellipse cx="10.6" cy="25.6" rx="2" ry="1.3" fill={BLUSH} opacity="0.85" />
-        <ellipse cx="29.4" cy="25.6" rx="2" ry="1.3" fill={BLUSH} opacity="0.85" />
-        <path d="M18.6,28 Q20,29.8 21.4,28" stroke={MOUTH} strokeWidth="0.9" fill="none" strokeLinecap="round" />
-        {/* 头顶星球 */}
-        <line x1="20" y1="7" x2="20" y2="3.5" stroke={OL} strokeWidth="0.8" />
-        <circle cx="20" cy="3" r="4" fill={STAR} opacity="0.25" />
-        <circle cx="20" cy="3" r="2.6" fill={ORB} stroke={OL} strokeWidth="0.8" />
-        {star(20, 3, 1.5, STAR, "orbs", OL)}
-        {st >= 4 && (<g>{star(13, 7, 1.4, STAR, "cr1", OL)}{star(27, 7, 1.4, STAR, "cr2", OL)}</g>)}
+        {/* 后发 + 两侧长发 */}
+        <path d="M24,5 C11,5 7,17 8,28 C8,33 10,38 12,41 L36,41 C38,38 40,33 40,28 C41,17 37,5 24,5 Z" fill="url(#hairGrad)" stroke={OL} strokeWidth="1.2" />
+        <path d="M12,30 C10,38 11,47 14,52 L18.5,50 C16.5,44 15.5,36 16.5,30 Z" fill="url(#hairGrad)" stroke={OL} strokeWidth="1" />
+        <path d="M36,30 C38,38 37,47 34,52 L29.5,50 C31.5,44 32.5,36 31.5,30 Z" fill="url(#hairGrad)" stroke={OL} strokeWidth="1" />
+        {/* 身体 */}
+        <circle cx="11" cy="44" r="4" fill={DRESS} stroke={OL} strokeWidth="1" />
+        <circle cx="37" cy="44" r="4" fill={DRESS} stroke={OL} strokeWidth="1" />
+        <path d="M16,41 C16,39 32,39 32,41 L37,57 C24,61 11,57 11,57 Z" fill={DRESS} stroke={OL} strokeWidth="1.1" />
+        <path d="M24,41 L26.5,57.5 L24,58 Z" fill={DRESSSH} opacity="0.5" />
+        <path d="M11,57 q3,2.5 6,0 q3,2.5 6,0 q3,2.5 6,0 q3,2.5 6,0" fill={DRESS} stroke={OL} strokeWidth="0.9" />
+        <circle cx="9" cy="48" r="2" fill={SKIN} stroke={OL} strokeWidth="0.7" />
+        <circle cx="39" cy="48" r="2" fill={SKIN} stroke={OL} strokeWidth="0.7" />
+        <rect x="19" y="55.5" width="3.4" height="5.4" rx="1.3" fill={TIGHTS} stroke={OL} strokeWidth="0.7" />
+        <rect x="25.6" y="55.5" width="3.4" height="5.4" rx="1.3" fill={TIGHTS} stroke={OL} strokeWidth="0.7" />
+        <ellipse cx="20.7" cy="61" rx="2.6" ry="1.6" fill={SHOE} stroke={OL} strokeWidth="0.7" />
+        <ellipse cx="27.3" cy="61" rx="2.6" ry="1.6" fill={SHOE} stroke={OL} strokeWidth="0.7" />
+        {/* 领子 + 胸前星 + 蝴蝶结 */}
+        <ellipse cx="24" cy="41" rx="5.5" ry="2" fill="#fff" stroke={OL} strokeWidth="0.8" />
+        {star(24, 46, 2.6, STAR, "cs", OL)}
+        <path d="M24,41 L19,38.5 L19,43.5 Z" fill={acc} stroke={OL} strokeWidth="0.6" />
+        <path d="M24,41 L29,38.5 L29,43.5 Z" fill={acc} stroke={OL} strokeWidth="0.6" />
+        <circle cx="24" cy="41" r="1.2" fill={acc} stroke={OL} strokeWidth="0.5" />
+        {/* 脸 + 右侧柔和阴影 */}
+        <ellipse cx="24" cy="24" rx="13.5" ry="14" fill={SKIN} stroke={OL} strokeWidth="1.3" />
+        <ellipse cx="32" cy="26" rx="5" ry="9" fill={SKINSH} opacity="0.16" />
+        {/* 前侧发束 + 发饰 */}
+        <path d="M11,16 C9,24 10,34 13,40 C11.5,34 10.5,24 11.5,17 Z" fill="url(#hairGrad)" stroke={OL} strokeWidth="0.9" />
+        <path d="M37,16 C39,24 38,34 35,40 C36.5,34 37.5,24 36.5,17 Z" fill="url(#hairGrad)" stroke={OL} strokeWidth="0.9" />
+        <circle cx="12.5" cy="30" r="1.8" fill={acc} stroke={OL} strokeWidth="0.5" />
+        <circle cx="35.5" cy="30" r="1.8" fill={acc} stroke={OL} strokeWidth="0.5" />
+        {/* 刘海（尖尖）+ 高光带 */}
+        <path d="M10,18 C10,9 15,5 24,5 C33,5 38,9 38,18 C35,13 31,12 28,15 L26,11 L24,15 L22,11 L20,15 C17,12 13,13 10,18 Z" fill="url(#hairGrad)" stroke={OL} strokeWidth="1.2" />
+        <path d="M14,11.5 C18,8.5 30,8.5 34,11.5" stroke={HAIRH} strokeWidth="1.5" fill="none" opacity="0.75" strokeLinecap="round" />
+        {/* 头顶宝石 + 星 */}
+        <ellipse cx="24" cy="5" rx="3" ry="3.5" fill="#c9a6f5" stroke={OL} strokeWidth="0.9" />
+        <ellipse cx="22.8" cy="3.8" rx="1" ry="1.4" fill="#fff" opacity="0.85" />
+        {star(24, 1.4, 1.3, STAR, "tg", OL)}
+        {st >= 4 && (<g>{star(15, 7, 1.5, STAR, "cr1", OL)}{star(33, 7, 1.5, STAR, "cr2", OL)}</g>)}
+        {/* 大眼睛 */}
+        {eye(17)}
+        {eye(31)}
+        {/* 腮红 + 鼻 + 嘴 */}
+        <ellipse cx="12.5" cy="31" rx="2.6" ry="1.7" fill="url(#blushGrad)" />
+        <ellipse cx="35.5" cy="31" rx="2.6" ry="1.7" fill="url(#blushGrad)" />
+        <circle cx="24" cy="30.4" r="0.4" fill="#e8a890" opacity="0.6" />
+        <path d="M22,33 Q24,35.4 26,33 Q24,34.2 22,33 Z" fill="#d4607e" stroke={OL} strokeWidth="0.4" />
+        <path d="M22.6,33.2 Q24,34 25.4,33.2" stroke="#fff" strokeWidth="0.4" fill="none" opacity="0.7" />
       </g>
     </g>
   );
@@ -108,15 +116,15 @@ function SleepHead({ cx, cy, scale = 1 }) {
     <g transform={`translate(${cx},${cy}) scale(${scale})`}>
       <circle cx="0" cy="-1" r="9" fill={HAIR} stroke={OL} strokeWidth="0.9" />
       <circle cx="0" cy="1" r="7.5" fill={SKIN} stroke={OL} strokeWidth="0.9" />
-      <path d="M-7,-2 C-7,-8 7,-8 7,-2 C3,-5 -3,-5 -7,-2 Z" fill={HAIR} stroke={OL} strokeWidth="0.9" />
+      <path d="M-7,-2 C-7,-8 7,-8 7,-2 C4,-4.5 1,-3 0,-6 L-1,-3 C-4,-4.5 -5,-4 -7,-2 Z" fill={HAIR} stroke={OL} strokeWidth="0.9" />
       <path d="M-5,2 Q-3.4,3.6 -1.8,2" stroke={OL} strokeWidth="0.8" fill="none" strokeLinecap="round" />
       <path d="M1.8,2 Q3.4,3.6 5,2" stroke={OL} strokeWidth="0.8" fill="none" strokeLinecap="round" />
       <ellipse cx="-5" cy="4" rx="1.7" ry="1.1" fill={BLUSH} opacity="0.85" />
       <ellipse cx="5" cy="4" rx="1.7" ry="1.1" fill={BLUSH} opacity="0.85" />
       <path d="M-1.4,5 Q0,6.4 1.4,5" stroke={MOUTH} strokeWidth="0.8" fill="none" strokeLinecap="round" />
-      <line x1="0" y1="-9" x2="0" y2="-12" stroke={OL} strokeWidth="0.7" />
-      <circle cx="0" cy="-12.6" r="2" fill={ORB} stroke={OL} strokeWidth="0.7" />
-      {star(0, -12.6, 1.1, STAR, "shs", OL)}
+      <line x1="0" y1="-9" x2="0" y2="-11.5" stroke={OL} strokeWidth="0.7" />
+      <ellipse cx="0" cy="-12.5" r="2" rx="2" ry="2.3" fill="#c9a6f5" stroke={OL} strokeWidth="0.7" />
+      {star(0, -12.5, 1, STAR, "shs", OL)}
     </g>
   );
 }
@@ -180,6 +188,19 @@ export default function IsometricRoom({ stageIndex = 0, activity = "idle", hour 
             <stop offset="0%" stopColor="rgba(255,224,150,0.5)" />
             <stop offset="100%" stopColor="rgba(255,224,150,0)" />
           </radialGradient>
+          <linearGradient id="irisGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#5436a8" />
+            <stop offset="55%" stopColor="#8a64d8" />
+            <stop offset="100%" stopColor="#c8aef7" />
+          </linearGradient>
+          <linearGradient id="hairGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#c9b4f2" />
+            <stop offset="100%" stopColor="#a187dc" />
+          </linearGradient>
+          <radialGradient id="blushGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffaecb" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#ffaecb" stopOpacity="0" />
+          </radialGradient>
         </defs>
 
         {/* 墙 + 地板 */}
@@ -190,9 +211,18 @@ export default function IsometricRoom({ stageIndex = 0, activity = "idle", hour 
           return <g key={`fl-${i}`} opacity="0.5"><circle cx={gx} cy={gy} r="0.9" fill="#f3c6d8" /><circle cx={gx + 2} cy={gy + 2} r="0.6" fill="#f7d7a0" /></g>;
         })}
         <rect x="0" y="116" width="280" height="6" fill="#f0b9cd" />
-        <rect x="0" y="122" width="280" height="54" fill="#f4e6d6" />
-        {[122, 134, 148, 164].map((yy, i) => <line key={`fhz-${i}`} x1="0" y1={yy} x2="280" y2={yy} stroke="#e8cdb6" strokeWidth="0.7" opacity="0.6" />)}
-        {Array.from({ length: 11 }, (_, i) => <line key={`fv-${i}`} x1={i * 28} y1="122" x2={i * 28 - 16} y2="176" stroke="#e8cdb6" strokeWidth="0.7" opacity="0.5" />)}
+        <rect x="0" y="122" width="280" height="54" fill="#f6eadb" />
+        {/* 菱形地砖 */}
+        {(() => {
+          const out = [];
+          [[128, 0], [142, 14], [158, 0], [174, 14]].forEach(([yy, off], r) => {
+            for (let x = -1; x <= 11; x++) {
+              const cx = x * 28 + off;
+              out.push(<polygon key={`tile-${r}-${x}`} points={`${cx},${yy - 6.5} ${cx + 14},${yy} ${cx},${yy + 6.5} ${cx - 14},${yy}`} fill={(x + r) % 2 ? "#fbf2e6" : "#f0dcc8"} stroke="#e6cab1" strokeWidth="0.5" />);
+            }
+          });
+          return out;
+        })()}
 
         {/* 窗（看海） */}
         <g>
@@ -339,7 +369,7 @@ export default function IsometricRoom({ stageIndex = 0, activity = "idle", hour 
           </g>
         ); })()}
 
-        {standing && <KaraSprite stageIdx={stageIndex} fx={120} fy={155} scale={0.92} />}
+        {standing && <KaraSprite stageIdx={stageIndex} fx={120} fy={156} scale={0.82} />}
 
         {isNight && <rect x="0" y="0" width="280" height="176" fill="#3a2f55" opacity="0.22" pointerEvents="none" />}
       </svg>

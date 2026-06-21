@@ -23,17 +23,13 @@ const WANDER_ROUTE = [
   { x: 56, y: 81, size: 8.3 },
 ];
 
-const FOREGROUND_LAYERS = [
-  "dresser",
-  "desk",
-  "desk-left-leg",
-  "desk-right-leg",
-  "sofa",
-  "table",
-  "table-left-leg",
-  "table-center-leg",
-  "table-right-leg",
-  "toybox",
+const OCCLUSION_GROUPS = [
+  { minX: 7, maxX: 44, maxY: 72, layers: ["bed"] },
+  { minX: 31, maxX: 47, maxY: 52, layers: ["dresser"] },
+  { minX: 48, maxX: 70, maxY: 54, layers: ["desk", "desk-left-leg", "desk-right-leg"] },
+  { minX: 71, maxX: 95, maxY: 65, layers: ["sofa"] },
+  { minX: 57, maxX: 77, maxY: 78, layers: ["table", "table-left-leg", "table-center-leg", "table-right-leg"] },
+  { minX: 69, maxX: 88, maxY: 86, layers: ["toybox"] },
 ];
 
 export default function KaraPixelHome({
@@ -73,6 +69,16 @@ export default function KaraPixelHome({
     : pose === "idle"
       ? WANDER_ROUTE[wanderStep]
       : POSES[pose] || POSES.idle;
+  const halfWidth = currentPose.size / 2;
+  const activeForegroundLayers = isBedPose
+    ? []
+    : OCCLUSION_GROUPS.flatMap(group => (
+      currentPose.y <= group.maxY
+      && currentPose.x + halfWidth >= group.minX
+      && currentPose.x - halfWidth <= group.maxX
+        ? group.layers
+        : []
+    ));
   const roomHint = isBedPose
     ? "睡觉中"
     : isComputerPose
@@ -118,8 +124,7 @@ export default function KaraPixelHome({
           </div>
         )}
 
-        {!isBedPose && <img className="kara-room-foreground is-bed" src="/kara-home/room-v2.png" alt="" aria-hidden="true" />}
-        {FOREGROUND_LAYERS.map(layer => (
+        {activeForegroundLayers.map(layer => (
           <img key={layer} className={`kara-room-foreground is-${layer}`} src="/kara-home/room-v2.png" alt="" aria-hidden="true" />
         ))}
 

@@ -204,19 +204,19 @@
 }
 
 .kara-room-foreground.is-table {
-  clip-path: ellipse(10.5% 7.5% at 67% 66%);
+  clip-path: ellipse(8.4% 6.4% at 66.5% 66%);
 }
 
 .kara-room-foreground.is-table-left-leg {
-  clip-path: polygon(59% 66%, 61.5% 66%, 61.5% 78%, 59% 78%);
+  clip-path: polygon(60.4% 66.5%, 62.2% 66.5%, 62.2% 76.5%, 60.4% 76.5%);
 }
 
 .kara-room-foreground.is-table-center-leg {
-  clip-path: polygon(65.2% 67%, 68% 67%, 68% 82%, 65.2% 82%);
+  clip-path: polygon(66% 68%, 68.3% 68%, 68.3% 80%, 66% 80%);
 }
 
 .kara-room-foreground.is-table-right-leg {
-  clip-path: polygon(72.2% 66%, 74.5% 66%, 74.5% 78%, 72.2% 78%);
+  clip-path: polygon(72.2% 66.5%, 74% 66.5%, 74% 76.5%, 72.2% 76.5%);
 }
 
 .kara-room-foreground.is-toybox {

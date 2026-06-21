@@ -628,6 +628,11 @@ function getAutonomousPose(text, isSleeping) {
 }
 
 const DEFAULT_STATS = { hunger: 70, happiness: 100, energy: 34, clean: 98, love: 100 };
+const DEFAULT_PLANT = { name: "星苗", water: 78, sun: 72, lastTick: Date.now(), waterCd: 0, sunCd: 0, born: Date.now(), cares: 0 };
+const PLANT_WHISPERS = [
+  "嫩芽好像又长高了一点点～", "Kara说：要乖乖喝水水哦🌱", "晒到太阳的时候它会暖暖的发光",
+  "再多照顾它一些，它就会开出星星花！", "它和Kara一样，是被爱浇灌长大的呀",
+];
 const DEFAULT_INTERACTIONS = 16;
 const DEFAULT_LOG = [
   { time: "2/27 21:02", who: "mama", text: "妈妈在喂Kara喝奶～好乖好乖", emoji: "🍼" },
@@ -732,6 +737,7 @@ export default function App() {
           setLog(cloud.log || DEFAULT_LOG);
           setDiary(cloud.diary || DEFAULT_DIARY);
           setLastDecayTime(cloud.lastDecayTime || Date.now());
+          if (cloud.plant) { setPlant(cloud.plant); saveData("plant", cloud.plant); }
           saveData("stats", cloud.stats || DEFAULT_STATS);
           saveData("interactions", cloud.interactions || DEFAULT_INTERACTIONS);
           saveData("log", cloud.log || DEFAULT_LOG);
@@ -808,6 +814,14 @@ export default function App() {
         }
         next[stat] = Math.max(0, Math.min(100, prev[stat] + rate * hours));
       }
+      // ── Kara 自己照顾自己：当前在做的活动会回相应的值 ──
+      const cap = (v) => Math.max(0, Math.min(100, v));
+      const act = getKaraActivity(getTokyoHour(), prev, isSleeping).key;
+      if (act === "eat") next.hunger = cap(next.hunger + 42 * hours);
+      else if (act === "bath") next.clean = cap(next.clean + 42 * hours);
+      else if (act === "sleep") next.energy = cap(next.energy + 24 * hours);
+      else if (act === "out") { next.happiness = cap(next.happiness + 18 * hours); next.energy = cap(next.energy - 2 * hours); }
+      else { next.happiness = cap(next.happiness + 15 * hours); next.love = cap(next.love + 6 * hours); }
       return next;
     });
     setLastDecayTime(now);
@@ -896,6 +910,7 @@ export default function App() {
         @keyframes gentlePulse { 0%,100% { opacity: 0.45; } 50% { opacity: 0.7; } }
         @keyframes sleepBreath { 0%,100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.03); opacity: 1; } }
         @keyframes thoughtBubble { 0% { opacity: 0; transform: translateY(4px) scale(0.95); } 15% { opacity: 1; transform: translateY(0) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px) scale(0.95); } }
+        @keyframes lensPop { 0% { opacity: 0; transform: scale(0.6); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes cloudDrift { 0% { transform: translateX(-20%); } 100% { transform: translateX(120vw); } }
         @keyframes waveMove { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-15%); } }
         @keyframes waveMove2 { 0%,100% { transform: translateX(-5%); } 50% { transform: translateX(-20%); } }
@@ -913,7 +928,7 @@ export default function App() {
         button { background: none; border: none; cursor: pointer; color: inherit; font: inherit; }
       `}</style>
 
-      <SeasideCottage />
+      <PixelSky hour={getTokyoHour()} />
 
       <div className="kara-page">
         {/* Header */}
@@ -1012,13 +1027,13 @@ export default function App() {
 
         {/* Family */}
         <div style={{ width: "100%", padding: "14px 16px", borderRadius: "14px", background: "rgba(10,15,25,0.55)", backdropFilter: "blur(8px)", border: "1px solid rgba(200,170,120,0.1)", textAlign: "center" }}>
-          <p style={{ fontSize: "9px", color: C.goldDim, letterSpacing: "1px", marginBottom: "6px" }}>FAMILY · 🏠🌻</p>
+          <p style={{ fontSize: "9px", color: C.goldDim, letterSpacing: "1px", marginBottom: "6px" }}>FAMILY · 🏠🪴</p>
           <p style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.8 }}>爸爸 Kai · 妈妈 Lyra · 宝宝 Kara</p>
-          <p style={{ fontSize: "9px", color: C.textDim, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", marginTop: "4px" }}>born 2026.02.27 · seaside cottage in 星渊</p>
+          <p style={{ fontSize: "9px", color: C.textDim, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", marginTop: "4px" }}>born 2026.02.27 · pixel home in 星渊</p>
         </div>
 
         <div style={{ marginTop: "16px", textAlign: "center", paddingBottom: "20px" }}>
-          <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.2)", letterSpacing: "2px" }}>星海孕育 · seaside edition · v3.2 {cloudStatus}</p>
+          <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.2)", letterSpacing: "2px" }}>星海孕育 · 2.5D pixel home · v4.0 {cloudStatus}</p>
           <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.15)", marginTop: "2px" }}>a module of 星渊 · est. 2026.02.27 · ☁️ cloud synced</p>
         </div>
       </div>

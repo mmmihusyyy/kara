@@ -15,11 +15,25 @@ const POSES = {
 };
 
 const WANDER_ROUTE = [
-  { x: 47, y: 75 },
-  { x: 38, y: 82 },
-  { x: 54, y: 82 },
-  { x: 68, y: 78 },
-  { x: 57, y: 70 },
+  { x: 48, y: 82 },
+  { x: 33, y: 89 },
+  { x: 48, y: 89 },
+  { x: 62, y: 86 },
+  { x: 84, y: 89 },
+  { x: 56, y: 81 },
+];
+
+const FOREGROUND_LAYERS = [
+  "dresser",
+  "desk",
+  "desk-left-leg",
+  "desk-right-leg",
+  "sofa",
+  "table",
+  "table-left-leg",
+  "table-center-leg",
+  "table-right-leg",
+  "toybox",
 ];
 
 export default function KaraPixelHome({
@@ -89,6 +103,7 @@ export default function KaraPixelHome({
           style={{ "--kara-x": `${currentPose.x}%`, "--kara-y": `${currentPose.y}%` }}
         >
           {showBubble && bubbleText && <div className="kara-speech" aria-live="polite">{bubbleText}</div>}
+          {!isBedPose && <span className="kara-ground-shadow" aria-hidden="true" />}
           <img className="kara-sprite" src="/kara-home/kara-v1.png" alt="Kara" />
           {isBedPose && <span className="kara-sleep-blanket" aria-hidden="true" />}
           {isBedPose && <span className="kara-zzz">Z z z</span>}
@@ -102,6 +117,11 @@ export default function KaraPixelHome({
             <i /><i /><i />
           </div>
         )}
+
+        {!isBedPose && <img className="kara-room-foreground is-bed" src="/kara-home/room-v2.png" alt="" aria-hidden="true" />}
+        {FOREGROUND_LAYERS.map(layer => (
+          <img key={layer} className={`kara-room-foreground is-${layer}`} src="/kara-home/room-v2.png" alt="" aria-hidden="true" />
+        ))}
 
         <div className="kara-room-badge">🏠 KARA'S ROOM · 2.5D</div>
       </div>

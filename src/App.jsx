@@ -920,6 +920,7 @@ export default function App() {
   const progress = nextStage ? ((interactions - currentStage.threshold) / (nextStage.threshold - currentStage.threshold)) * 100 : 100;
   const recentActivity = activity?.at && now - new Date(activity.at).getTime() < 90 * 60 * 1000;
   const previewPose = IS_LOCAL_PREVIEW ? new URLSearchParams(window.location.search).get("pose") : null;
+  const previewBubble = IS_LOCAL_PREVIEW ? new URLSearchParams(window.location.search).get("bubble") : null;
   const roomPose = previewPose || getAutonomousPose(recentActivity ? activity.text : "", isSleeping, getTokyoHour());
 
   return (
@@ -974,8 +975,8 @@ export default function App() {
               interactions={interactions}
               nextStage={nextStage}
               progress={progress}
-              showBubble={showThought}
-              bubbleText={karaThought}
+              showBubble={Boolean(previewBubble) || showThought}
+              bubbleText={previewBubble || karaThought}
               pose={roomPose}
             />
           </div>

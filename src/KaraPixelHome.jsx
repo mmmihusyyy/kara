@@ -108,7 +108,6 @@ export default function KaraPixelHome({
           className={`kara-sprite-wrap ${isBedPose ? "is-napping" : ""} ${isComputerPose ? "is-computing" : ""} ${isToyPose ? "is-playing" : ""} ${isWandering ? "is-walking" : ""}`}
           style={{ "--kara-x": `${currentPose.x}%`, "--kara-y": `${currentPose.y}%`, "--kara-size": `${currentPose.size}%` }}
         >
-          {showBubble && bubbleText && <div className="kara-speech" aria-live="polite">{bubbleText}</div>}
           {!isBedPose && <span className="kara-ground-shadow" aria-hidden="true" />}
           <img className="kara-sprite" src="/kara-home/kara-v1.png" alt="Kara" />
           {isBedPose && <span className="kara-sleep-blanket" aria-hidden="true" />}
@@ -127,6 +126,15 @@ export default function KaraPixelHome({
         {activeForegroundLayers.map(layer => (
           <img key={layer} className={`kara-room-foreground is-${layer}`} src="/kara-home/room-v2.png" alt="" aria-hidden="true" />
         ))}
+
+        {showBubble && bubbleText && (
+          <div
+            className={`kara-speech-anchor ${isBedPose ? "is-napping" : ""} ${currentPose.y < 50 ? "is-upper" : ""}`}
+            style={{ "--kara-x": `${currentPose.x}%`, "--kara-y": `${currentPose.y}%`, "--kara-size": `${currentPose.size}%` }}
+          >
+            <div className="kara-speech" aria-live="polite">{bubbleText}</div>
+          </div>
+        )}
 
         <div className="kara-room-badge">🏠 KARA'S ROOM · 2.5D</div>
       </div>

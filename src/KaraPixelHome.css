@@ -259,7 +259,7 @@
   animation: karaBlanketBreath 2.4s ease-in-out infinite;
 }
 
-.kara-sprite-wrap.is-napping .kara-speech {
+.kara-speech-anchor.is-napping .kara-speech {
   left: 90%;
   bottom: calc(100% + 2px);
 }
@@ -360,6 +360,31 @@
   font: 8.5px/1.45 "Noto Sans SC", sans-serif;
   text-align: center;
   image-rendering: auto;
+}
+
+.kara-speech-anchor {
+  position: absolute;
+  z-index: 9;
+  left: var(--kara-x);
+  top: var(--kara-y);
+  width: var(--kara-size, 8.5%);
+  min-width: 26px;
+  transform: translate(-50%, -100%);
+  transition: left 0.9s steps(6), top 0.9s steps(6), width 0.9s steps(6);
+  pointer-events: none;
+}
+
+.kara-speech-anchor.is-upper .kara-speech {
+  left: calc(100% + 8px);
+  bottom: auto;
+  top: 0;
+  transform: translateY(-35%);
+}
+
+.kara-speech-anchor.is-upper .kara-speech::after {
+  left: -6px;
+  bottom: 8px;
+  transform: rotate(135deg);
 }
 
 .kara-speech::after {

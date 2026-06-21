@@ -2,25 +2,25 @@ import { useEffect, useState } from "react";
 import "./KaraPixelHome.css";
 
 const POSES = {
-  idle: { x: 47, y: 75 },
-  bed: { x: 28, y: 55 },
-  desk: { x: 59, y: 52 },
-  computer: { x: 51.5, y: 53 },
-  sofa: { x: 77, y: 60 },
-  toys: { x: 79, y: 84 },
-  dresser: { x: 42, y: 47 },
-  window: { x: 24, y: 38 },
-  table: { x: 63, y: 72 },
-  center: { x: 50, y: 73 },
+  idle: { x: 47, y: 75, size: 8.2 },
+  bed: { x: 28, y: 55, size: 15 },
+  desk: { x: 59, y: 52, size: 7 },
+  computer: { x: 51.5, y: 51, size: 7.2 },
+  sofa: { x: 77, y: 60, size: 7.5 },
+  toys: { x: 79, y: 84, size: 7.5 },
+  dresser: { x: 42, y: 47, size: 6.5 },
+  window: { x: 24, y: 38, size: 6.2 },
+  table: { x: 63, y: 65, size: 7.2 },
+  center: { x: 50, y: 73, size: 8 },
 };
 
 const WANDER_ROUTE = [
-  { x: 48, y: 82 },
-  { x: 33, y: 89 },
-  { x: 48, y: 89 },
-  { x: 62, y: 86 },
-  { x: 84, y: 89 },
-  { x: 56, y: 81 },
+  { x: 48, y: 82, size: 8.5 },
+  { x: 33, y: 89, size: 9.2 },
+  { x: 48, y: 89, size: 9.2 },
+  { x: 62, y: 86, size: 8.8 },
+  { x: 84, y: 89, size: 9.2 },
+  { x: 56, y: 81, size: 8.3 },
 ];
 
 const FOREGROUND_LAYERS = [
@@ -100,7 +100,7 @@ export default function KaraPixelHome({
 
         <div
           className={`kara-sprite-wrap ${isBedPose ? "is-napping" : ""} ${isComputerPose ? "is-computing" : ""} ${isToyPose ? "is-playing" : ""} ${isWandering ? "is-walking" : ""}`}
-          style={{ "--kara-x": `${currentPose.x}%`, "--kara-y": `${currentPose.y}%` }}
+          style={{ "--kara-x": `${currentPose.x}%`, "--kara-y": `${currentPose.y}%`, "--kara-size": `${currentPose.size}%` }}
         >
           {showBubble && bubbleText && <div className="kara-speech" aria-live="polite">{bubbleText}</div>}
           {!isBedPose && <span className="kara-ground-shadow" aria-hidden="true" />}

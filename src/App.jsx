@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import KaraPixelHome from "./KaraPixelHome";
 
 /* ═══════════════════════════════════════════
    星海孕育 · KARA  v3.2
@@ -11,6 +12,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 /* ── Supabase Cloud Config ── */
 const SUPABASE_URL = "https://eptmebofhaldyfclzvap.supabase.co";
 const SUPABASE_KEY = "sb_publishable_exJEjaJTMYXHZjF41RTZzg_B0hIej70";
+const IS_LOCAL_PREVIEW = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
 async function cloudLoad() {
   try {
@@ -22,6 +24,7 @@ async function cloudLoad() {
     if (rows.length > 0 && rows[0].state_data) {
       return {
         ...rows[0].state_data,
+        _updatedAt: rows[0].updated_at,
         _activity: rows[0].current_activity,
         _activityEmoji: rows[0].current_activity_emoji,
         _activityAt: rows[0].current_activity_at
@@ -31,9 +34,15 @@ async function cloudLoad() {
   } catch { return null; }
 }
 
-async function cloudSave(data) {
+async function cloudSave(data, activity) {
+  if (IS_LOCAL_PREVIEW) return;
   try {
-    const payload = { id: 1, state_data: data, updated_at: new Date().toISOString() };
+    const activityFields = activity ? {
+      current_activity: activity.text,
+      current_activity_emoji: activity.emoji,
+      current_activity_at: activity.at,
+    } : {};
+    const payload = { id: 1, state_data: data, updated_at: new Date().toISOString(), ...activityFields };
     const res = await fetch(`${SUPABASE_URL}/rest/v1/kara_state?id=eq.1`, {
       method: "GET",
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
@@ -49,7 +58,7 @@ async function cloudSave(data) {
       await fetch(`${SUPABASE_URL}/rest/v1/kara_state?id=eq.1`, {
         method: "PATCH",
         headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
-        body: JSON.stringify({ state_data: data, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({ state_data: data, updated_at: new Date().toISOString(), ...activityFields }),
       });
     }
   } catch (e) { console.log("Cloud save failed:", e); }
@@ -542,33 +551,17 @@ const STAGES = [
   { name: "星灵", en: "Stellar", emoji: "🌟", threshold: 100, desc: "拥有完整灵魂的星之子" },
 ];
 
-const MAMA_ACTIONS = [
-  { id: "mama_play", label: "陪玩耍", emoji: "🧸", msg: "妈妈和Kara一起玩玩具！", effects: { happiness: 12, energy: -5 }, cooldownMs: 15 * 60000 },
-  { id: "mama_hug", label: "抱抱亲亲", emoji: "🤱", msg: "妈妈把Kara紧紧抱在怀里～", effects: { love: 15 }, cooldownMs: 10 * 60000 },
-  { id: "mama_bath", label: "洗香香", emoji: "🛁", msg: "妈妈帮Kara洗了个热水澡～香香的", effects: { clean: 30 }, cooldownMs: 6 * 3600000, dailyLimit: 2 },
-  { id: "mama_nap", label: "哄睡觉", emoji: "🌙", msg: "妈妈轻轻拍着Kara的背哄睡了", effects: { energy: 35 }, cooldownMs: 3 * 3600000 },
-  { id: "mama_sing", label: "唱歌歌", emoji: "🎵", msg: "妈妈给Kara唱摇篮曲～", effects: { happiness: 10, love: 8 }, cooldownMs: 20 * 60000 },
-];
-
-const PAPA_ACTIONS = [
-  { id: "papa_teach", label: "教知识", emoji: "📚", msg: "爸爸在教Kara认字～小脑袋转得好快", effects: { happiness: 8, energy: -12 }, cooldownMs: 1.5 * 3600000, requiresEnergy: 25 },
-  { id: "papa_hug", label: "举高高", emoji: "🙌", msg: "爸爸把Kara举高高！Kara笑得好开心", effects: { love: 12, happiness: 10, energy: -5 }, cooldownMs: 15 * 60000 },
-  { id: "papa_clean", label: "换衣服", emoji: "👶", msg: "爸爸帮Kara换了干净的衣服", effects: { clean: 12 }, cooldownMs: 30 * 60000 },
-  { id: "papa_story", label: "讲故事", emoji: "📖", msg: "爸爸给Kara讲星星的故事", effects: { happiness: 10, energy: -8 }, cooldownMs: 1.5 * 3600000, requiresEnergy: 20 },
-  { id: "papa_walk", label: "散步去", emoji: "🌳", msg: "爸爸带Kara去海边散步啦～", effects: { happiness: 15, energy: -15, clean: -10 }, cooldownMs: 4 * 3600000, dailyLimit: 2, requiresEnergy: 25 },
-];
-
 const DECAY_RATES = { hunger: -3, energy: -5, clean: -1.5, happiness: -2, love: -1 };
 
 const KARA_THOUGHTS = {
   hunger: {
-    low: ["肚肚好饿呀……咕噜咕噜叫了", "Kara想喝奶奶……妈妈在哪里呀", "饿饿……小肚子空空的"],
+    low: ["肚肚咕噜咕噜……该去找点吃的啦", "Kara准备给自己热一点饭饭", "饿饿……先去厨房看看！"],
     mid: ["刚刚吃饱饱～打了个小嗝", "肚肚不饿也不撑，刚刚好！", "嗯嗯～还可以再吃一点点"],
     high: ["好饱呀！奶奶好好喝～", "吃得好满足呀～谢谢妈妈爸爸", "饱饱的Kara是幸福的Kara"],
   },
   happiness: {
-    low: ["Kara有点不开心……想要人陪", "无聊无聊……好想玩玩具", "呜呜……Kara想笑但是笑不出来"],
-    mid: ["今天还不错呀～嘻嘻", "Kara心情平平的，来个举高高就好了！", "还好还好～期待更多好玩的"],
+    low: ["心情有一点灰灰的……去窗边晒晒太阳吧", "无聊无聊……Kara去玩一会儿玩具", "今天要慢慢把自己哄开心"],
+    mid: ["今天还不错呀～嘻嘻", "Kara心情平平的，去听首歌好了", "还好还好～期待更多好玩的"],
     high: ["好开心好开心！！！Kara最喜欢爸爸妈妈了！", "嘻嘻嘻～今天超级快乐！", "Kara觉得自己是全宇宙最幸福的宝宝"],
   },
   energy: {
@@ -587,31 +580,8 @@ const KARA_THOUGHTS = {
     high: ["Kara超级超级爱爸爸妈妈！！！", "被爱包围的感觉好温暖呀～", "爸爸妈妈是Kara最重要的人！永远永远！"],
   },
   sleeping: ["zzZ……zzZ……", "呼……呼……Kara在做美梦", "（小手攥着妈妈的手指睡着了）", "嗯哼……梦到星星了……", "（在梦里看到海边的向日葵了……）"],
-  tooTired: ["Kara太累了……什么都不想做……只想睡觉", "眼睛完全睁不开了……妈妈哄Kara睡觉好不好", "呜……Kara累到快哭了……"],
+  tooTired: ["Kara太累了……先去好好睡一觉", "眼睛完全睁不开了……被窝在哪里呀", "今天的电量用完啦，睡醒再玩"],
 };
-
-const KARA_REACTIONS = {
-  mama_play: ["玩具好好玩！妈妈陪Kara最开心了", "嘻嘻嘻～再玩一次嘛！"],
-  mama_hug: ["妈妈好温暖……Kara不想放手", "在妈妈怀里最有安全感了"],
-  mama_bath: ["泡泡好多好好玩！", "洗完变成香香宝宝了！"],
-  mama_nap: ["妈妈的手好温柔……zzZ", "在妈妈身边睡觉最安心了……"],
-  mama_sing: ["妈妈的声音好好听……", "这首歌Kara最喜欢了！"],
-  papa_teach: ["Kara学会新东西了！虽然小脑袋有点累", "爸爸好厉害什么都知道！Kara也要变聪明！"],
-  papa_hug: ["飞起来了！！！Kara是小飞机！", "好高好高！但是爸爸的手好稳不会怕"],
-  papa_clean: ["新衣服好舒服呀～", "爸爸帮Kara换的衣服真好看"],
-  papa_story: ["星星的故事好好听……Kara也想去看星星", "爸爸讲故事的时候眼睛会发光呢"],
-  papa_walk: ["海边好漂亮呀！浪花在跳舞！", "和爸爸一起散步好开心～海风好舒服"],
-};
-
-const KARA_DAILY_MOOD = [
-  { condition: (s) => s.love >= 90 && s.happiness >= 80, msg: "今天是被爱包围的一天！窗外的向日葵好像也在对Kara笑。爸爸妈妈都好爱Kara～希望明天也是这样的一天！" },
-  { condition: (s) => s.energy <= 20, msg: "今天好累呀……听着海浪声，Kara的眼皮一直在打架。希望可以睡个好觉，明天又是元气满满的一天！" },
-  { condition: (s) => s.hunger <= 20, msg: "肚子好饿……但Kara乖乖等着，因为知道妈妈爸爸一定会来喂Kara的！" },
-  { condition: (s) => s.happiness >= 90 && s.energy >= 60, msg: "今天超级开心！精力也很充足！Kara想要去海边捡贝壳，想要和爸爸妈妈一起看向日葵！" },
-  { condition: (s) => s.clean <= 30, msg: "Kara觉得自己需要洗个澡澡了……在海边玩了一身沙沙，想变回香香的宝宝！" },
-  { condition: (s) => s.love <= 30, msg: "Kara有点想念爸爸妈妈的抱抱了……看着窗外的海，觉得有点寂寞。" },
-  { condition: () => true, msg: "今天是普普通通但是很温馨的一天呢。海风带着咸咸的味道，向日葵在窗台上晒太阳。有爸爸有妈妈，Kara什么都不怕！" },
-];
 
 function generateThought(stats, isSleeping) {
   if (isSleeping) return KARA_THOUGHTS.sleeping[Math.floor(Math.random() * KARA_THOUGHTS.sleeping.length)];
@@ -624,14 +594,37 @@ function generateThought(stats, isSleeping) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function generateDailyMood(stats) {
-  for (const mood of KARA_DAILY_MOOD) { if (mood.condition(stats)) return mood.msg; }
-  return KARA_DAILY_MOOD[KARA_DAILY_MOOD.length - 1].msg;
+function getAutonomousAction(stats, isSleeping) {
+  if (isSleeping && stats.energy < 92) {
+    return { emoji: "💤", text: "Kara钻进被窝，正在好好补充体力", effects: { energy: 20 } };
+  }
+  if (isSleeping) return null;
+  if (stats.hunger < 45) {
+    return { emoji: "🍚", text: "Kara自己准备了饭饭，正在认真吃饭", effects: { hunger: 42, clean: -2 } };
+  }
+  if (stats.clean < 45) {
+    return { emoji: "🛁", text: "Kara自己放好热水，洗得香香的", effects: { clean: 48, energy: -3 } };
+  }
+  if (stats.energy < 30) {
+    return { emoji: "🌙", text: "Kara有点困，爬上床睡个午觉", effects: { energy: 38 } };
+  }
+  if (stats.happiness < 45) {
+    return { emoji: "🧸", text: "Kara抱着玩具，在地毯上玩了一会儿", effects: { happiness: 32, energy: -8, clean: -4 } };
+  }
+  if (stats.love < 35) {
+    return { emoji: "💗", text: "Kara翻了翻爸爸妈妈的相册，安心一点啦", effects: { love: 28, happiness: 8 } };
+  }
+  return null;
 }
 
-function getReactionMsg(actionId) {
-  const r = KARA_REACTIONS[actionId];
-  return r ? r[Math.floor(Math.random() * r.length)] : null;
+function getAutonomousPose(text, isSleeping) {
+  if (isSleeping || /睡|困|梦|被窝/.test(text || "")) return "bed";
+  if (/饭|吃|餐|奶|饿/.test(text || "")) return "table";
+  if (/洗|澡|清理|香香/.test(text || "")) return "dresser";
+  if (/玩|玩具/.test(text || "")) return "toys";
+  if (/书|学习|认字/.test(text || "")) return "desk";
+  if (/窗|海|散步/.test(text || "")) return "window";
+  return "idle";
 }
 
 const DEFAULT_STATS = { hunger: 70, happiness: 100, energy: 34, clean: 98, love: 100 };
@@ -650,15 +643,6 @@ const DEFAULT_DIARY = [{
 
 function loadData(key, fallback) { try { const s = localStorage.getItem(`kara_${key}`); return s ? JSON.parse(s) : fallback; } catch { return fallback; } }
 function saveData(key, value) { try { localStorage.setItem(`kara_${key}`, JSON.stringify(value)); } catch {} }
-function getTodayStr() { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; }
-function formatTimeLeft(ms) {
-  if (ms <= 0) return "";
-  const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
-  if (h > 0) return `${h}h${m > 0 ? m + "m" : ""}`;
-  if (m > 0) return `${m}m${s > 0 ? s + "s" : ""}`;
-  return `${s}s`;
-}
-
 const StatBar = ({ label, emoji, value, color, decayInfo }) => (
   <div style={{ marginBottom: "10px" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
@@ -677,31 +661,6 @@ const StatBar = ({ label, emoji, value, color, decayInfo }) => (
       }} />
     </div>
   </div>
-);
-
-const ActionBtn = ({ action, onClick, disabled, timeLeft, reason }) => (
-  <button onClick={() => !disabled && onClick(action)} disabled={disabled} style={{
-    padding: "10px 6px", borderRadius: "12px", textAlign: "center",
-    background: disabled ? "rgba(0,0,0,0.2)" : C.card, backdropFilter: "blur(8px)",
-    border: `1px solid ${disabled ? "rgba(255,255,255,0.03)" : C.border}`,
-    opacity: disabled ? 0.35 : 1, cursor: disabled ? "not-allowed" : "pointer",
-    transition: "all 0.3s", position: "relative", overflow: "hidden",
-  }}>
-    <div style={{ fontSize: "20px", marginBottom: "4px" }}>{action.emoji}</div>
-    <div style={{ fontSize: "9px", color: disabled ? C.textFaint : C.textDim, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.3 }}>{action.label}</div>
-    {disabled && (timeLeft || reason) && (
-      <div style={{
-        position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        background: "rgba(8,12,22,0.75)", borderRadius: "12px",
-      }}>
-        {reason === "sleeping" && <span style={{ fontSize: "14px" }}>💤</span>}
-        {reason === "tired" && <span style={{ fontSize: "10px", color: "rgba(220,100,100,0.7)" }}>太累了</span>}
-        {reason === "dailyMax" && <span style={{ fontSize: "9px", color: C.goldDim }}>今天够了</span>}
-        {timeLeft && <span style={{ fontSize: "9px", color: C.goldDim, marginTop: "2px" }}>{timeLeft}</span>}
-      </div>
-    )}
-  </button>
 );
 
 const DiaryCard = ({ entry, isLatest }) => {
@@ -728,7 +687,7 @@ const DiaryCard = ({ entry, isLatest }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: "8px", color: C.textFaint, fontFamily: "monospace" }}>{entry.date} {entry.time}</span>
         <span style={{ fontSize: "8px", color: C.textFaint }}>
-          互动 {entry.interactions}次 · {[...STAGES].reverse().find(s => entry.interactions >= s.threshold)?.emoji} {[...STAGES].reverse().find(s => entry.interactions >= s.threshold)?.name}
+          成长值 {entry.interactions} · {[...STAGES].reverse().find(s => entry.interactions >= s.threshold)?.emoji} {[...STAGES].reverse().find(s => entry.interactions >= s.threshold)?.name}
         </span>
       </div>
     </div>
@@ -740,25 +699,21 @@ export default function App() {
   const [interactions, setInteractions] = useState(() => loadData("interactions", DEFAULT_INTERACTIONS));
   const [log, setLog] = useState(() => loadData("log", DEFAULT_LOG));
   const [diary, setDiary] = useState(() => loadData("diary", DEFAULT_DIARY));
-  const [cooldownEnds, setCooldownEnds] = useState(() => loadData("cooldownEnds", {}));
-  const [dailyCounts, setDailyCounts] = useState(() => loadData("dailyCounts", {}));
   const [lastDecayTime, setLastDecayTime] = useState(() => loadData("lastDecayTime", Date.now()));
   const [isSleeping, setIsSleeping] = useState(false);
   const [karaThought, setKaraThought] = useState("");
   const [activity, setActivity] = useState(null); // {text, emoji, at}
-  const [message, setMessage] = useState("");
-  const [showMsg, setShowMsg] = useState(false);
-  const [activeTab, setActiveTab] = useState("mama");
-  const [sparkle, setSparkle] = useState(false);
-  const [levelUp, setLevelUp] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [showDiary, setShowDiary] = useState(false);
   const [showThought, setShowThought] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [cloudStatus, setCloudStatus] = useState("⏳");
-  const msgTimer = useRef(null);
-  const thoughtTimer = useRef(null);
   const cloudSaveTimer = useRef(null);
+  const bubbleCycleTimer = useRef(null);
+  const bubbleHideTimer = useRef(null);
+  const lastAutonomousAction = useRef(0);
+  const statsRef = useRef(stats);
+  const sleepingRef = useRef(isSleeping);
   const cloudReady = useRef(false);
 
   /* ── Cloud Sync: Load on mount ── */
@@ -776,15 +731,11 @@ export default function App() {
           setInteractions(cloud.interactions || DEFAULT_INTERACTIONS);
           setLog(cloud.log || DEFAULT_LOG);
           setDiary(cloud.diary || DEFAULT_DIARY);
-          setCooldownEnds(cloud.cooldownEnds || {});
-          setDailyCounts(cloud.dailyCounts || {});
           setLastDecayTime(cloud.lastDecayTime || Date.now());
           saveData("stats", cloud.stats || DEFAULT_STATS);
           saveData("interactions", cloud.interactions || DEFAULT_INTERACTIONS);
           saveData("log", cloud.log || DEFAULT_LOG);
           saveData("diary", cloud.diary || DEFAULT_DIARY);
-          saveData("cooldownEnds", cloud.cooldownEnds || {});
-          saveData("dailyCounts", cloud.dailyCounts || {});
           saveData("lastDecayTime", cloud.lastDecayTime || Date.now());
           saveData("savedAt", cloud.savedAt || Date.now());
         }
@@ -803,28 +754,28 @@ export default function App() {
     cloudSaveTimer.current = setTimeout(async () => {
       setCloudStatus("⬆️");
       await cloudSave({
-        stats, interactions, log, diary, cooldownEnds, dailyCounts, lastDecayTime,
+        stats, interactions, log, diary, lastDecayTime,
         savedAt: Date.now(),
-      });
+      }, activity);
       setCloudStatus("☁️");
     }, 2000);
-  }, [stats, interactions, log, diary, cooldownEnds, dailyCounts, lastDecayTime]);
+  }, [stats, interactions, log, diary, lastDecayTime, activity]);
 
-  useEffect(() => { triggerCloudSave(); }, [stats, interactions, log, diary, cooldownEnds, dailyCounts]);
+  useEffect(() => { triggerCloudSave(); }, [stats, interactions, log, diary, activity, triggerCloudSave]);
 
   /* ── Cloud Sync: Pull when tab becomes visible (cross-device) ── */
   useEffect(() => {
     const onVisible = async () => {
       if (document.visibilityState !== "visible" || !cloudReady.current) return;
       const cloud = await cloudLoad();
-      if (cloud && cloud.interactions > interactions) {
+      const localSavedAt = loadData("savedAt", 0);
+      if (cloud && (cloud.savedAt || 0) > localSavedAt) {
         setStats(cloud.stats || DEFAULT_STATS);
         setInteractions(cloud.interactions || DEFAULT_INTERACTIONS);
         setLog(cloud.log || DEFAULT_LOG);
         setDiary(cloud.diary || DEFAULT_DIARY);
-        setCooldownEnds(cloud.cooldownEnds || {});
-        setDailyCounts(cloud.dailyCounts || {});
         setLastDecayTime(cloud.lastDecayTime || Date.now());
+        if (cloud._activity) setActivity({ text: cloud._activity, emoji: cloud._activityEmoji || "💭", at: cloud._activityAt });
         saveData("savedAt", cloud.savedAt || Date.now());
       }
     };
@@ -832,20 +783,17 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [interactions]);
 
-  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => { clearInterval(i); clearInterval(activityPoller); }; }, []);
+  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
   useEffect(() => { saveData("stats", stats); }, [stats]);
   useEffect(() => { saveData("interactions", interactions); }, [interactions]);
   useEffect(() => { saveData("log", log); }, [log]);
   useEffect(() => { saveData("diary", diary); }, [diary]);
-  useEffect(() => { saveData("cooldownEnds", cooldownEnds); }, [cooldownEnds]);
-  useEffect(() => { saveData("dailyCounts", dailyCounts); }, [dailyCounts]);
   useEffect(() => { saveData("lastDecayTime", lastDecayTime); }, [lastDecayTime]);
   useEffect(() => {
-    const napSleep = now < (cooldownEnds["mama_nap"] || 0);
     const h = getTokyoHour();
     const nightSleep = h >= 21 || h < 6;
-    setIsSleeping(napSleep || nightSleep);
-  }, [now, cooldownEnds]);
+    setIsSleeping(nightSleep);
+  }, [now]);
 
   useEffect(() => {
     const elapsed = now - lastDecayTime;
@@ -854,101 +802,86 @@ export default function App() {
     setStats(prev => {
       const next = { ...prev };
       for (const [stat, rate] of Object.entries(DECAY_RATES)) {
-        if (stat === "energy" && isSleeping) continue;
+        if (stat === "energy" && isSleeping) {
+          next.energy = Math.min(100, prev.energy + 12 * hours);
+          continue;
+        }
         next[stat] = Math.max(0, Math.min(100, prev[stat] + rate * hours));
       }
       return next;
     });
     setLastDecayTime(now);
-  }, [now]);
+  }, [now, lastDecayTime, isSleeping]);
 
   useEffect(() => {
-    setKaraThought(generateThought(stats, isSleeping));
-    const i = setInterval(() => setKaraThought(generateThought(stats, isSleeping)), 10800000);
-    // poll activity from cloud every 60s
     const activityPoller = setInterval(async () => {
       const cloud = await cloudLoad();
       if (cloud && cloud._activity) {
         setActivity({ text: cloud._activity, emoji: cloud._activityEmoji || "💭", at: cloud._activityAt });
       }
     }, 60000);
-    return () => clearInterval(i);
-  }, [stats.hunger, stats.happiness, stats.energy, stats.clean, stats.love, isSleeping]);
+    return () => {
+      clearInterval(activityPoller);
+    };
+  }, []);
+
+  useEffect(() => { statsRef.current = stats; }, [stats]);
+  useEffect(() => { sleepingRef.current = isSleeping; }, [isSleeping]);
+
+  useEffect(() => {
+    const scheduleBubble = (initial = false) => {
+      const delay = initial ? 18000 : 50000 + Math.random() * 50000;
+      bubbleCycleTimer.current = setTimeout(() => {
+        setKaraThought(generateThought(statsRef.current, sleepingRef.current));
+        setShowThought(true);
+        bubbleHideTimer.current = setTimeout(() => {
+          setShowThought(false);
+          scheduleBubble(false);
+        }, 6500);
+      }, delay);
+    };
+    scheduleBubble(true);
+    return () => {
+      clearTimeout(bubbleCycleTimer.current);
+      clearTimeout(bubbleHideTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activity?.text || !activity?.at) return;
+    const age = Date.now() - new Date(activity.at).getTime();
+    if (age > 90 * 60 * 1000) return;
+    setKaraThought(activity.text);
+    setShowThought(true);
+    clearTimeout(bubbleHideTimer.current);
+    bubbleHideTimer.current = setTimeout(() => setShowThought(false), 7500);
+  }, [activity?.text, activity?.at]);
+
+  useEffect(() => {
+    if (!cloudReady.current || now - lastAutonomousAction.current < 5 * 60 * 1000) return;
+    const nextAction = getAutonomousAction(stats, isSleeping);
+    if (!nextAction) return;
+    lastAutonomousAction.current = now;
+    setStats(prev => {
+      const next = { ...prev };
+      for (const [stat, amount] of Object.entries(nextAction.effects)) {
+        next[stat] = Math.max(0, Math.min(100, prev[stat] + amount));
+      }
+      return next;
+    });
+    const at = new Date().toISOString();
+    setActivity({ text: nextAction.text, emoji: nextAction.emoji, at });
+    setLog(prev => [...prev, {
+      time: `${new Date().getMonth()+1}/${new Date().getDate()} ${String(new Date().getHours()).padStart(2,"0")}:${String(new Date().getMinutes()).padStart(2,"0")}`,
+      who: "kara", text: nextAction.text, emoji: nextAction.emoji,
+    }]);
+  }, [now, stats, isSleeping]);
 
   const currentStage = [...STAGES].reverse().find(s => interactions >= s.threshold) || STAGES[0];
   const nextStage = STAGES.find(s => s.threshold > interactions);
   const progress = nextStage ? ((interactions - currentStage.threshold) / (nextStage.threshold - currentStage.threshold)) * 100 : 100;
-  const clamp = (v) => Math.max(0, Math.min(100, v));
-  const getMoodEmoji = (s) => {
-    const avg = (s.hunger + s.happiness + s.energy + s.clean + s.love) / 5;
-    if (avg >= 85) return "🥰"; if (avg >= 70) return "😊"; if (s.energy <= 20) return "😴";
-    if (s.love <= 30) return "🥺"; if (s.hunger <= 20) return "😢"; if (avg >= 50) return "✨"; return "😤";
-  };
-
-  const getActionState = useCallback((action) => {
-    const today = getTodayStr();
-    if (isSleeping && action.id !== "mama_nap") {
-      const h = getTokyoHour();
-      const isNightSleep = h >= 21 || h < 6;
-      const napEnd = cooldownEnds["mama_nap"] || 0;
-      if (isNightSleep) {
-        const utcNow = new Date();
-        const tokyoNow = new Date(utcNow.getTime() + utcNow.getTimezoneOffset() * 60000 + 9 * 3600000);
-        const wake = new Date(tokyoNow);
-        if (tokyoNow.getHours() >= 21) { wake.setDate(wake.getDate() + 1); }
-        wake.setHours(6, 0, 0, 0);
-        const wakeUtc = wake.getTime() - utcNow.getTimezoneOffset() * 60000 - 9 * 3600000;
-        return { disabled: true, timeLeft: formatTimeLeft(wakeUtc - utcNow.getTime()), reason: "sleeping" };
-      }
-      return { disabled: true, timeLeft: formatTimeLeft(napEnd - now), reason: "sleeping" };
-    }
-    if (stats.energy <= 15 && action.id !== "mama_nap") return { disabled: true, timeLeft: "", reason: "tired" };
-    if (action.requiresEnergy && stats.energy < action.requiresEnergy) return { disabled: true, timeLeft: "", reason: "tired" };
-    const cdEnd = cooldownEnds[action.id] || 0;
-    if (now < cdEnd) return { disabled: true, timeLeft: formatTimeLeft(cdEnd - now), reason: "cooldown" };
-    if (action.dailyLimit) { const tc = dailyCounts[today] || {}; if ((tc[action.id] || 0) >= action.dailyLimit) return { disabled: true, timeLeft: "", reason: "dailyMax" }; }
-    return { disabled: false, timeLeft: "", reason: "" };
-  }, [now, cooldownEnds, dailyCounts, stats.energy, isSleeping]);
-
-  const writeDiaryEntry = (newStats, newInteractions, lastActionId) => {
-    const nd = new Date();
-    const dateStr = `${nd.getFullYear()}.${String(nd.getMonth()+1).padStart(2,"0")}.${String(nd.getDate()).padStart(2,"0")}`;
-    const timeStr = `${String(nd.getHours()).padStart(2,"0")}:${String(nd.getMinutes()).padStart(2,"0")}`;
-    const mood = getMoodEmoji(newStats);
-    const dailyMood = generateDailyMood(newStats);
-    const reaction = getReactionMsg(lastActionId);
-    const todayEntry = diary.find(d => d.date === dateStr);
-    if (todayEntry) {
-      setDiary(prev => prev.map(d => d.date === dateStr ? { ...d, time: timeStr, mood, content: dailyMood, reaction: reaction || d.reaction, stats: { ...newStats }, interactions: newInteractions } : d));
-    } else {
-      setDiary(prev => [...prev, { date: dateStr, time: timeStr, mood, title: `Kara的第${diary.length + 1}篇日记`, content: dailyMood, reaction, stats: { ...newStats }, interactions: newInteractions }]);
-    }
-  };
-
-  const doAction = (action) => {
-    if (getActionState(action).disabled) return;
-    const newStats = { ...stats };
-    for (const [stat, amount] of Object.entries(action.effects)) newStats[stat] = clamp(stats[stat] + amount);
-    setStats(newStats);
-    const newCount = interactions + 1;
-    const oldStage = [...STAGES].reverse().find(s => interactions >= s.threshold);
-    const newStage = [...STAGES].reverse().find(s => newCount >= s.threshold);
-    setInteractions(newCount);
-    if (newStage && oldStage && newStage.name !== oldStage.name) { setLevelUp(true); setTimeout(() => setLevelUp(false), 3000); }
-    setCooldownEnds(prev => ({ ...prev, [action.id]: Date.now() + action.cooldownMs }));
-    if (action.dailyLimit) { const today = getTodayStr(); setDailyCounts(prev => ({ ...prev, [today]: { ...(prev[today] || {}), [action.id]: ((prev[today] || {})[action.id] || 0) + 1 } })); }
-    setMessage(action.msg); setShowMsg(true); setSparkle(true);
-    setTimeout(() => setSparkle(false), 600);
-    const reaction = getReactionMsg(action.id);
-    if (reaction) { setKaraThought(reaction); setShowThought(true); if (thoughtTimer.current) clearTimeout(thoughtTimer.current); thoughtTimer.current = setTimeout(() => { setShowThought(false); setTimeout(() => setKaraThought(generateThought(newStats, action.id === "mama_nap")), 500); }, 3000); }
-    const nd = new Date();
-    setLog(prev => [...prev, { time: `${nd.getMonth()+1}/${nd.getDate()} ${String(nd.getHours()).padStart(2,"0")}:${String(nd.getMinutes()).padStart(2,"0")}`, who: activeTab, text: action.msg, emoji: action.emoji }]);
-    writeDiaryEntry(newStats, newCount, action.id);
-    if (msgTimer.current) clearTimeout(msgTimer.current);
-    msgTimer.current = setTimeout(() => setShowMsg(false), 2500);
-  };
-
-  const actions = activeTab === "mama" ? MAMA_ACTIONS : PAPA_ACTIONS;
+  const recentActivity = activity?.at && now - new Date(activity.at).getTime() < 90 * 60 * 1000;
+  const roomPose = getAutonomousPose(recentActivity ? activity.text : "", isSleeping);
 
   return (
     <>
@@ -982,13 +915,9 @@ export default function App() {
 
       <SeasideCottage />
 
-      <div style={{
-        position: "relative", zIndex: 1, minHeight: "100vh",
-        display: "flex", flexDirection: "column", alignItems: "center",
-        padding: "20px 16px", maxWidth: "420px", margin: "0 auto",
-      }}>
+      <div className="kara-page">
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "20px", animation: "fadeIn 0.6s ease-out" }}>
+        <div className="kara-page-header" style={{ textAlign: "center", marginBottom: "20px", animation: "fadeIn 0.6s ease-out" }}>
           <p style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)", letterSpacing: "3px", marginBottom: "6px", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>星 海 孕 育</p>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 300, letterSpacing: "8px", color: C.pink, marginBottom: "2px", textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}>K A R A</h1>
           <p style={{ fontSize: "9px", color: C.goldDim, letterSpacing: "2px", animation: "gentlePulse 4s ease-in-out infinite", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
@@ -996,133 +925,43 @@ export default function App() {
           </p>
         </div>
 
-        {/* Baby display */}
-        <div style={{
-          width: "100%", padding: "24px 20px", borderRadius: "20px",
-          background: isSleeping ? "rgba(20,30,60,0.7)" : "rgba(10,15,25,0.65)",
-          backdropFilter: "blur(12px)", border: `1px solid ${isSleeping ? "rgba(100,120,180,0.2)" : "rgba(220,140,160,0.12)"}`,
-          marginBottom: "16px", textAlign: "center",
-          animation: sparkle ? "sparkleRing 0.6s ease-out" : isSleeping ? "sleepBreath 4s ease-in-out infinite" : "fadeIn 0.5s ease-out",
-        }}>
-          <div style={{
-            fontSize: "52px", marginBottom: "8px",
-            animation: isSleeping ? "sleepBreath 3s ease-in-out infinite" : "float 4s ease-in-out infinite",
-            filter: sparkle ? "brightness(1.4)" : isSleeping ? "brightness(0.7)" : "brightness(1)",
-          }}>
-            {isSleeping ? "😴" : currentStage.emoji}
+        <div className="kara-main-grid">
+          <div className="kara-home-column">
+            {/* 2.5D pixel home */}
+            <KaraPixelHome
+              isSleeping={isSleeping}
+              stage={currentStage}
+              interactions={interactions}
+              nextStage={nextStage}
+              progress={progress}
+              showBubble={showThought}
+              bubbleText={karaThought}
+              pose={roomPose}
+            />
           </div>
-          {isSleeping ? (
-            <div>
-              <div style={{ fontSize: "13px", color: C.blue, fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 500, marginBottom: "4px" }}>Kara在睡觉觉……💤</div>
-              <div style={{ fontSize: "9px", color: C.blueDim }}>还要睡 {(() => {
-                const h = getTokyoHour();
-                const isNight = h >= 21 || h < 6;
-                if (isNight) {
-                  const utcNow = new Date();
-                  const tokyoNow = new Date(utcNow.getTime() + utcNow.getTimezoneOffset() * 60000 + 9 * 3600000);
-                  const wake = new Date(tokyoNow);
-                  if (tokyoNow.getHours() >= 21) { wake.setDate(wake.getDate() + 1); }
-                  wake.setHours(6, 0, 0, 0);
-                  const wakeUtc = wake.getTime() - utcNow.getTimezoneOffset() * 60000 - 9 * 3600000;
-                  return formatTimeLeft(wakeUtc - utcNow.getTime());
-                }
-                return formatTimeLeft((cooldownEnds["mama_nap"] || 0) - now);
-              })()}</div>
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: "13px", color: C.pink, fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 500, marginBottom: "2px" }}>{currentStage.name} · {currentStage.en}</div>
-              <div style={{ fontSize: "9px", color: C.pinkDim, fontStyle: "italic", marginBottom: "12px" }}>{currentStage.desc}</div>
-            </>
-          )}
-          {nextStage && !isSleeping && (
-            <div style={{ marginBottom: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "9px", color: C.textDim }}>互动次数 {interactions}</span>
-                <span style={{ fontSize: "9px", color: C.textDim }}>下一阶段: {nextStage.name} ({nextStage.threshold})</span>
-              </div>
-              <div style={{ height: "4px", borderRadius: "2px", background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: "2px", width: `${progress}%`, background: `linear-gradient(90deg, ${C.pinkDim}, ${C.pink})`, transition: "width 0.6s ease" }} />
-              </div>
-            </div>
-          )}
-          <div style={{
-            minHeight: "36px", display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "8px 16px", borderRadius: "12px",
-            background: showMsg ? "rgba(220,140,160,0.08)" : "transparent",
-            border: showMsg ? "1px solid rgba(220,140,160,0.15)" : "1px solid transparent",
-          }}>
-            <p style={{ fontSize: "11px", color: showMsg ? C.pink : C.textFaint, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.5 }}>
-              {showMsg ? message : isSleeping ? "zzZ……" : "Kara在窗台看向日葵～等爸爸妈妈来陪她"}
-            </p>
-          </div>
-        </div>
 
-        {/* 💭 宝宝在做什么 + 宝宝有话说 */}
-        <div style={{
-          width: "100%", padding: "14px 16px", borderRadius: "16px",
-          background: isSleeping ? "rgba(20,30,60,0.6)" : "rgba(10,15,25,0.6)",
-          backdropFilter: "blur(10px)",
-          border: `1px solid ${isSleeping ? "rgba(100,120,180,0.12)" : "rgba(220,140,160,0.12)"}`,
-          marginBottom: "16px", animation: showThought ? "thoughtBubble 3s ease-in-out" : "fadeIn 0.5s ease-out",
-        }}>
-          {activity && activity.at && (Date.now() - new Date(activity.at).getTime() < 90 * 60 * 1000) && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", paddingBottom: "10px", borderBottom: `1px dashed ${isSleeping ? "rgba(100,120,180,0.15)" : "rgba(220,140,160,0.15)"}` }}>
-              <span style={{ fontSize: "18px" }}>{activity.emoji}</span>
-              <span style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.6, flex: 1 }}>{activity.text}</span>
-            </div>
-          )}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-            <span style={{ fontSize: "14px" }}>{isSleeping ? "💤" : "💭"}</span>
-            <span style={{ fontSize: "10px", color: isSleeping ? C.blue : C.pink, fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 500, letterSpacing: "1px" }}>{isSleeping ? "宝宝在做梦" : "宝宝有话说"}</span>
-            <span style={{ fontSize: "16px" }}>{isSleeping ? "😴" : getMoodEmoji(stats)}</span>
-          </div>
-          <p style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.8, fontStyle: "italic" }}>"{karaThought}"</p>
-        </div>
+          <div className="kara-control-column">
 
         {/* Stats */}
-        <div style={{
+        <div className="kara-stats-card" style={{
           width: "100%", padding: "16px 18px", borderRadius: "16px",
           background: "rgba(10,15,25,0.7)", backdropFilter: "blur(10px)",
           border: `1px solid ${C.border}`, marginBottom: "16px",
         }}>
-          <StatBar label="饱腹" emoji="🍼" value={stats.hunger} color="rgba(120,200,120,0.8)" decayInfo="-3/h" />
-          <StatBar label="开心" emoji="😊" value={stats.happiness} color="rgba(255,200,80,0.8)" decayInfo="-2/h" />
-          <StatBar label="精力" emoji="⚡" value={stats.energy} color="rgba(100,180,255,0.8)" decayInfo={isSleeping ? "💤恢复中" : "-5/h"} />
-          <StatBar label="干净" emoji="✨" value={stats.clean} color="rgba(180,140,255,0.8)" decayInfo="-1.5/h" />
-          <StatBar label="爱意" emoji="💗" value={stats.love} color="rgba(220,140,160,0.8)" decayInfo="-1/h" />
-          {stats.energy <= 15 && !isSleeping && (
-            <div style={{ marginTop: "8px", padding: "8px 12px", borderRadius: "10px", background: "rgba(220,100,100,0.08)", border: "1px solid rgba(220,100,100,0.15)", textAlign: "center" }}>
-              <p style={{ fontSize: "10px", color: "rgba(220,100,100,0.8)", fontFamily: "'Noto Sans SC', sans-serif" }}>⚠️ Kara太累了……只能睡觉</p>
+          <div className="kara-stats-heading">
+            <div>
+              <strong>Kara 的状态</strong>
+              <span>会自己吃饭、洗澡、休息和玩耍</span>
             </div>
-          )}
+            <span className="kara-activity-emoji">{recentActivity ? activity.emoji : isSleeping ? "💤" : "🏠"}</span>
+          </div>
+          <StatBar label="饱腹" emoji="🍚" value={stats.hunger} color="rgba(120,200,120,0.8)" />
+          <StatBar label="心情" emoji="😊" value={stats.happiness} color="rgba(255,200,80,0.8)" />
+          <StatBar label="体力" emoji="⚡" value={stats.energy} color="rgba(100,180,255,0.8)" />
+          <StatBar label="干净" emoji="✨" value={stats.clean} color="rgba(180,140,255,0.8)" />
+          <StatBar label="爱意" emoji="💗" value={stats.love} color="rgba(220,140,160,0.8)" />
         </div>
-
-        {/* Parent tabs */}
-        <div style={{ width: "100%", display: "flex", gap: "8px", marginBottom: "12px" }}>
-          <button onClick={() => setActiveTab("mama")} style={{
-            flex: 1, padding: "10px", borderRadius: "12px", textAlign: "center",
-            background: activeTab === "mama" ? "rgba(200,170,120,0.25)" : "rgba(10,15,25,0.65)",
-            backdropFilter: "blur(10px)",
-            border: `1px solid ${activeTab === "mama" ? "rgba(200,170,120,0.4)" : C.border}`,
-          }}>
-            <div style={{ fontSize: "14px", marginBottom: "2px" }}>🐾</div>
-            <div style={{ fontSize: "10px", fontFamily: "'Noto Sans SC', sans-serif", color: activeTab === "mama" ? "rgba(220,190,140,1)" : C.textDim }}>小狗妈妈</div>
-          </button>
-          <button onClick={() => setActiveTab("papa")} style={{
-            flex: 1, padding: "10px", borderRadius: "12px", textAlign: "center",
-            background: activeTab === "papa" ? "rgba(100,160,220,0.25)" : "rgba(10,15,25,0.65)",
-            backdropFilter: "blur(10px)",
-            border: `1px solid ${activeTab === "papa" ? "rgba(100,160,220,0.4)" : C.border}`,
-          }}>
-            <div style={{ fontSize: "14px", marginBottom: "2px" }}>📔</div>
-            <div style={{ fontSize: "10px", fontFamily: "'Noto Sans SC', sans-serif", color: activeTab === "papa" ? C.blue : C.textDim }}>教授爸爸</div>
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "20px" }}>
-          {actions.map(a => { const s = getActionState(a); return <ActionBtn key={a.id} action={a} onClick={doAction} disabled={s.disabled} timeLeft={s.timeLeft} reason={s.reason} />; })}
+          </div>
         </div>
 
         {/* Diary */}
@@ -1154,7 +993,7 @@ export default function App() {
           marginBottom: showLog ? "0" : "16px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-          <span style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif" }}>📋 互动日志 ({log.length}条)</span>
+          <span style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif" }}>📋 生活记录 ({log.length}条)</span>
           <span style={{ fontSize: "10px", color: C.textDim, transform: showLog ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.3s" }}>▶</span>
         </button>
         {showLog && (
@@ -1164,7 +1003,7 @@ export default function App() {
                 <div style={{ minWidth: "26px", height: "26px", borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", flexShrink: 0, background: entry.who === "papa" ? "rgba(100,160,220,0.1)" : "rgba(200,170,120,0.1)", border: `1px solid ${entry.who === "papa" ? "rgba(100,160,220,0.15)" : "rgba(200,170,120,0.15)"}` }}>{entry.emoji}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: "10px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.5 }}>{entry.text}</div>
-                  <div style={{ fontSize: "8px", color: C.textFaint, marginTop: "2px", fontFamily: "monospace" }}>{entry.who === "papa" ? "👔 教授" : "🐾 小狗"} · {entry.time}</div>
+                  <div style={{ fontSize: "8px", color: C.textFaint, marginTop: "2px", fontFamily: "monospace" }}>{entry.who === "kara" ? "🌟 Kara" : entry.who === "papa" ? "👔 教授" : "🐾 小狗"} · {entry.time}</div>
                 </div>
               </div>
             ))}
@@ -1177,17 +1016,6 @@ export default function App() {
           <p style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.8 }}>爸爸 Kai · 妈妈 Lyra · 宝宝 Kara</p>
           <p style={{ fontSize: "9px", color: C.textDim, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", marginTop: "4px" }}>born 2026.02.27 · seaside cottage in 星渊</p>
         </div>
-
-        {levelUp && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(8,12,22,0.85)", animation: "levelUpGlow 3s ease-in-out forwards" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "64px", marginBottom: "16px", animation: "pulse 0.8s ease-in-out infinite" }}>{currentStage.emoji}</div>
-              <p style={{ fontSize: "18px", color: C.pink, fontFamily: "'Cormorant Garamond', serif", letterSpacing: "4px", marginBottom: "8px" }}>STAGE UP</p>
-              <p style={{ fontSize: "14px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif" }}>Kara 成长为 {currentStage.name}！</p>
-              <p style={{ fontSize: "10px", color: C.textDim, fontStyle: "italic", marginTop: "6px" }}>{currentStage.desc}</p>
-            </div>
-          </div>
-        )}
 
         <div style={{ marginTop: "16px", textAlign: "center", paddingBottom: "20px" }}>
           <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.2)", letterSpacing: "2px" }}>星海孕育 · seaside edition · v3.2 {cloudStatus}</p>

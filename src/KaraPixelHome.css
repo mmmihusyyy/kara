@@ -1,0 +1,305 @@
+.kara-page {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1100px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 28px 24px;
+}
+
+.kara-page-header {
+  width: 100%;
+}
+
+.kara-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.9fr);
+  align-items: start;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.kara-home-column,
+.kara-control-column {
+  min-width: 0;
+}
+
+.kara-home-column .kara-pixel-card {
+  margin-bottom: 0;
+}
+
+.kara-control-column {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
+}
+
+.kara-stats-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  margin-bottom: 0 !important;
+}
+
+.kara-stats-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed rgba(160, 175, 220, 0.18);
+  text-align: left;
+}
+
+.kara-stats-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.kara-stats-heading strong {
+  color: rgba(235, 239, 250, 0.92);
+  font: 500 13px/1.2 "Noto Sans SC", sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.kara-stats-heading span:not(.kara-activity-emoji) {
+  color: rgba(180, 190, 215, 0.48);
+  font: 9px/1.4 "Noto Sans SC", sans-serif;
+}
+
+.kara-activity-emoji {
+  font-size: 25px;
+}
+
+.kara-pixel-card {
+  width: 100%;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 2px solid rgba(159, 169, 220, 0.72);
+  border-radius: 18px;
+  color: #514d78;
+  background: linear-gradient(180deg, rgba(255, 251, 229, 0.97), rgba(225, 235, 251, 0.96));
+  box-shadow: 0 12px 36px rgba(39, 42, 78, 0.28), inset 0 0 0 2px rgba(255,255,255,0.55);
+  animation: karaCardIn 0.5s ease-out;
+}
+
+.kara-pixel-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(111, 118, 180, 0.22);
+}
+
+.kara-pixel-meta > div {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: 6px;
+}
+
+.kara-stage-icon { font-size: 13px; }
+.kara-stage-name { font: 700 11px/1.2 "Noto Sans SC", sans-serif; color: #7266af; white-space: nowrap; }
+.kara-stage-desc { font: 9px/1.2 "Noto Sans SC", sans-serif; color: rgba(72, 84, 119, 0.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kara-room-hint { flex: none; font: 9px/1 "Noto Sans SC", sans-serif; color: #6882a5; }
+
+.kara-room {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  isolation: isolate;
+  background: #ffe8ec;
+  image-rendering: pixelated;
+}
+
+.kara-room-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  user-select: none;
+  pointer-events: none;
+}
+
+.kara-room-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 55%, rgba(109,59,97,0.08));
+}
+
+.kara-sprite-wrap {
+  position: absolute;
+  z-index: 5;
+  left: var(--kara-x);
+  top: var(--kara-y);
+  width: 11.5%;
+  min-width: 38px;
+  transform: translate(-50%, -100%);
+  transition: left 0.9s steps(6), top 0.9s steps(6);
+  filter: drop-shadow(0 3px 1px rgba(85, 45, 76, 0.22));
+  pointer-events: none;
+}
+
+.kara-sprite {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  animation: karaIdle 1.7s steps(2) infinite;
+}
+
+.kara-sprite-wrap.is-napping {
+  width: 10.5%;
+  filter: saturate(0.75) brightness(0.9) drop-shadow(0 3px 1px rgba(85, 45, 76, 0.18));
+}
+
+.kara-sprite-wrap.is-napping .kara-sprite {
+  animation: karaSleep 2.4s ease-in-out infinite;
+}
+
+.kara-speech {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 5px);
+  min-width: 112px;
+  max-width: 166px;
+  padding: 6px 8px;
+  transform: translateX(-50%);
+  border: 2px solid #8f85c8;
+  border-radius: 9px;
+  color: #56517e;
+  background: rgba(255, 253, 246, 0.96);
+  box-shadow: 2px 2px 0 rgba(77, 77, 126, 0.2);
+  font: 8.5px/1.45 "Noto Sans SC", sans-serif;
+  text-align: center;
+  image-rendering: auto;
+}
+
+.kara-speech::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 2px solid #8f85c8;
+  border-bottom: 2px solid #8f85c8;
+  background: #fffdf6;
+}
+
+.kara-zzz {
+  position: absolute;
+  right: -18px;
+  top: 8px;
+  color: #7d72b7;
+  font: 700 9px/1 monospace;
+  animation: karaZzz 1.8s steps(3) infinite;
+}
+
+.kara-room-badge {
+  position: absolute;
+  z-index: 6;
+  left: 8px;
+  bottom: 7px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255,255,255,0.82);
+  border-radius: 6px;
+  color: #59638e;
+  background: rgba(255,247,238,0.82);
+  box-shadow: 1px 2px 0 rgba(121,64,98,0.16);
+  font: 700 7px/1 "Courier New", monospace;
+  letter-spacing: 0.3px;
+}
+
+.kara-progress { padding: 8px 12px 10px; }
+.kara-progress-labels { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; color: rgba(72,84,119,0.72); font: 8.5px/1.2 "Noto Sans SC", sans-serif; }
+.kara-progress-track { height: 5px; overflow: hidden; border-radius: 3px; background: rgba(105,125,177,0.15); box-shadow: inset 0 1px 1px rgba(56,63,104,0.12); }
+.kara-progress-fill { height: 100%; border-radius: inherit; background: repeating-linear-gradient(90deg, #7ca8cf 0 7px, #a594d3 7px 11px, #a9be79 11px 15px, #f0cf6d 15px 19px); transition: width 0.6s ease; }
+
+.kara-pixel-card.is-sleeping .kara-room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: rgba(79, 72, 142, 0.17);
+  mix-blend-mode: multiply;
+}
+
+@keyframes karaCardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes karaIdle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes karaSleep { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+@keyframes karaZzz { 0% { opacity: 0; transform: translateY(3px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translateY(-5px); } }
+
+@media (max-width: 360px) {
+  .kara-stage-desc { display: none; }
+  .kara-room-hint { font-size: 8px; }
+  .kara-speech { min-width: 98px; max-width: 132px; font-size: 7.5px; }
+}
+
+@media (max-width: 800px) {
+  .kara-page {
+    width: min(100%, 420px);
+    padding: 20px 16px;
+  }
+
+  .kara-main-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .kara-stats-card {
+    height: auto;
+  }
+
+  .kara-stats-heading {
+    margin-bottom: 16px;
+  }
+}
+
+@media (min-width: 801px) {
+  .kara-pixel-meta {
+    padding: 11px 14px 10px;
+  }
+
+  .kara-stage-icon { font-size: 15px; }
+  .kara-stage-name { font-size: 12px; }
+  .kara-stage-desc,
+  .kara-room-hint { font-size: 10px; }
+
+  .kara-speech {
+    min-width: 138px;
+    max-width: 210px;
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+
+  .kara-progress {
+    padding: 10px 14px 12px;
+  }
+
+  .kara-progress-labels {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kara-sprite,
+  .kara-zzz,
+  .kara-pixel-card { animation: none !important; }
+  .kara-sprite-wrap { transition: none; }
+}

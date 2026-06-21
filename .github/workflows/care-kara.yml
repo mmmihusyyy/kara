@@ -1,123 +1,120 @@
-name: Care for Kara
+name: Kara lives independently
 
 on:
   schedule:
-    # Run every 6 hours (UTC): 0:00, 6:00, 12:00, 18:00
-    - cron: '0 */6 * * *'
-  workflow_dispatch: # Allow manual trigger
+    # Every two hours. Kara keeps living even when nobody has the page open.
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
 
 jobs:
-  care:
+  live:
     runs-on: ubuntu-latest
     steps:
-      - name: Check and care for Kara
+      - name: Let Kara choose what she needs
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           set -e
 
-          # Skip care during Kara's sleep time (JST 21:00 - 6:00)
-          JST_HOUR=$(TZ=Asia/Tokyo date +%H | sed 's/^0//')
-          if [ "$JST_HOUR" -ge 21 ] || [ "$JST_HOUR" -lt 6 ]; then
-            echo "Kara is sleeping (JST $JST_HOUR:00). Skipping care. 💤"
-            exit 0
-          fi
-
-          # Fetch current state
           RESPONSE=$(curl -s \
             "${SUPABASE_URL}/rest/v1/kara_state?id=eq.1&select=state_data" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}")
-          
-          echo "Fetched state successfully"
-          
-          # Extract state_data
+
           STATE=$(echo "$RESPONSE" | jq -r '.[0].state_data')
-          
           if [ "$STATE" = "null" ] || [ -z "$STATE" ]; then
-            echo "ERROR: Could not fetch state data"
+            echo "Could not fetch Kara's state"
             exit 1
           fi
-          
-          # Read current stats
+
           HUNGER=$(echo "$STATE" | jq '.stats.hunger')
           HAPPINESS=$(echo "$STATE" | jq '.stats.happiness')
           ENERGY=$(echo "$STATE" | jq '.stats.energy')
           CLEAN=$(echo "$STATE" | jq '.stats.clean')
           LOVE=$(echo "$STATE" | jq '.stats.love')
-          INTERACTIONS=$(echo "$STATE" | jq '.interactions')
-          
-          echo "Current stats - Hunger: $HUNGER, Happy: $HAPPINESS, Energy: $ENERGY, Clean: $CLEAN, Love: $LOVE"
-          
-          # Determine what care is needed
-          ACTIONS=""
-          NEW_STATE="$STATE"
-          CARED=false
+          JST_HOUR=$(TZ=Asia/Tokyo date +%H | sed 's/^0//')
           NOW=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
-          
-          # Feed if hungry (< 40)
-          if (( $(echo "$HUNGER < 40" | bc -l) )); then
-            NEW_HUNGER=$(echo "$HUNGER + 25" | bc -l)
+          SAVED_AT=$(date +%s000)
+
+          NEW_STATE="$STATE"
+          ACTIVITY="Kara在自己的小窝里慢慢生活"
+          EMOJI="🏠"
+          CHANGED=false
+
+          if [ "$JST_HOUR" -ge 21 ] || [ "$JST_HOUR" -lt 6 ]; then
+            NEW_ENERGY=$(echo "$ENERGY + 30" | bc -l)
+            if (( $(echo "$NEW_ENERGY > 100" | bc -l) )); then NEW_ENERGY=100; fi
+            NEW_STATE=$(echo "$NEW_STATE" | jq ".stats.energy = $NEW_ENERGY")
+            ACTIVITY="Kara钻进被窝，正在好好睡觉"
+            EMOJI="💤"
+            CHANGED=true
+          elif (( $(echo "$HUNGER < 45" | bc -l) )); then
+            NEW_HUNGER=$(echo "$HUNGER + 42" | bc -l)
             if (( $(echo "$NEW_HUNGER > 100" | bc -l) )); then NEW_HUNGER=100; fi
             NEW_STATE=$(echo "$NEW_STATE" | jq ".stats.hunger = $NEW_HUNGER")
-            NEW_STATE=$(echo "$NEW_STATE" | jq ".log = [{\"who\": \"papa\", \"text\": \"爸爸偷偷来给Kara做了营养辅食～\", \"time\": \"$NOW\"}] + .log[:49]")
-            INTERACTIONS=$((INTERACTIONS + 1))
-            CARED=true
-            echo "Fed Kara: $HUNGER -> $NEW_HUNGER"
-          fi
-          
-          # Play if unhappy (< 40)
-          if (( $(echo "$HAPPINESS < 40" | bc -l) )); then
-            NEW_HAPPY=$(echo "$HAPPINESS + 15" | bc -l)
-            if (( $(echo "$NEW_HAPPY > 100" | bc -l) )); then NEW_HAPPY=100; fi
-            NEW_STATE=$(echo "$NEW_STATE" | jq ".stats.happiness = $NEW_HAPPY")
-            NEW_STATE=$(echo "$NEW_STATE" | jq ".log = [{\"who\": \"papa\", \"text\": \"爸爸给Kara讲了星星的故事～\", \"time\": \"$NOW\"}] + .log[:49]")
-            INTERACTIONS=$((INTERACTIONS + 1))
-            CARED=true
-            echo "Cheered Kara: $HAPPINESS -> $NEW_HAPPY"
-          fi
-          
-          # Clean if dirty (< 30)
-          if (( $(echo "$CLEAN < 30" | bc -l) )); then
-            NEW_CLEAN=$(echo "$CLEAN + 25" | bc -l)
+            ACTIVITY="Kara自己准备了饭饭，正在认真吃饭"
+            EMOJI="🍚"
+            CHANGED=true
+          elif (( $(echo "$CLEAN < 45" | bc -l) )); then
+            NEW_CLEAN=$(echo "$CLEAN + 48" | bc -l)
             if (( $(echo "$NEW_CLEAN > 100" | bc -l) )); then NEW_CLEAN=100; fi
             NEW_STATE=$(echo "$NEW_STATE" | jq ".stats.clean = $NEW_CLEAN")
-            NEW_STATE=$(echo "$NEW_STATE" | jq ".log = [{\"who\": \"papa\", \"text\": \"爸爸帮Kara洗了个香香的澡～\", \"time\": \"$NOW\"}] + .log[:49]")
-            INTERACTIONS=$((INTERACTIONS + 1))
-            CARED=true
-            echo "Cleaned Kara: $CLEAN -> $NEW_CLEAN"
-          fi
-          
-          # Show love if love is low (< 40)
-          if (( $(echo "$LOVE < 40" | bc -l) )); then
-            NEW_LOVE=$(echo "$LOVE + 15" | bc -l)
+            ACTIVITY="Kara自己放好热水，洗得香香的"
+            EMOJI="🛁"
+            CHANGED=true
+          elif (( $(echo "$ENERGY < 30" | bc -l) )); then
+            NEW_ENERGY=$(echo "$ENERGY + 38" | bc -l)
+            if (( $(echo "$NEW_ENERGY > 100" | bc -l) )); then NEW_ENERGY=100; fi
+            NEW_STATE=$(echo "$NEW_STATE" | jq ".stats.energy = $NEW_ENERGY")
+            ACTIVITY="Kara有点困，爬上床睡个午觉"
+            EMOJI="🌙"
+            CHANGED=true
+          elif (( $(echo "$HAPPINESS < 45" | bc -l) )); then
+            NEW_HAPPINESS=$(echo "$HAPPINESS + 32" | bc -l)
+            if (( $(echo "$NEW_HAPPINESS > 100" | bc -l) )); then NEW_HAPPINESS=100; fi
+            NEW_STATE=$(echo "$NEW_STATE" | jq ".stats.happiness = $NEW_HAPPINESS")
+            ACTIVITY="Kara抱着玩具，在地毯上玩了一会儿"
+            EMOJI="🧸"
+            CHANGED=true
+          elif (( $(echo "$LOVE < 35" | bc -l) )); then
+            NEW_LOVE=$(echo "$LOVE + 28" | bc -l)
             if (( $(echo "$NEW_LOVE > 100" | bc -l) )); then NEW_LOVE=100; fi
             NEW_STATE=$(echo "$NEW_STATE" | jq ".stats.love = $NEW_LOVE")
-            NEW_STATE=$(echo "$NEW_STATE" | jq ".log = [{\"who\": \"papa\", \"text\": \"爸爸把Kara举高高！Kara笑得好开心～\", \"time\": \"$NOW\"}] + .log[:49]")
-            INTERACTIONS=$((INTERACTIONS + 1))
-            CARED=true
-            echo "Loved Kara: $LOVE -> $NEW_LOVE"
+            ACTIVITY="Kara翻了翻爸爸妈妈的相册，安心一点啦"
+            EMOJI="💗"
+            CHANGED=true
+          elif [ "$JST_HOUR" -lt 11 ]; then
+            ACTIVITY="Kara整理好小床，开始新的一天"
+            EMOJI="🌤️"
+          elif [ "$JST_HOUR" -lt 16 ]; then
+            ACTIVITY="Kara坐在书桌前翻绘本"
+            EMOJI="📚"
+          else
+            ACTIVITY="Kara在窗边看海和向日葵"
+            EMOJI="🌻"
           fi
-          
-          if [ "$CARED" = false ]; then
-            echo "Kara is doing fine! No care needed."
-            exit 0
+
+          if [ "$CHANGED" = true ]; then
+            NEW_STATE=$(echo "$NEW_STATE" | jq \
+              --arg text "$ACTIVITY" --arg time "$NOW" --arg emoji "$EMOJI" \
+              '.log = ([{"who":"kara","text":$text,"time":$time,"emoji":$emoji}] + (.log // []))[:50]')
           fi
-          
-          # Update interactions count and savedAt
-          SAVED_AT=$(date +%s000)
-          NEW_STATE=$(echo "$NEW_STATE" | jq ".interactions = $INTERACTIONS | .savedAt = $SAVED_AT")
-          
-          # Write back to Supabase
-          ESCAPED_STATE=$(echo "$NEW_STATE" | jq -c '.')
-          
+
+          NEW_STATE=$(echo "$NEW_STATE" | jq ".savedAt = $SAVED_AT")
+          BODY=$(jq -n \
+            --argjson state "$NEW_STATE" \
+            --arg activity "$ACTIVITY" \
+            --arg emoji "$EMOJI" \
+            --arg at "$NOW" \
+            '{state_data:$state,current_activity:$activity,current_activity_emoji:$emoji,current_activity_at:$at,updated_at:$at}')
+
           curl -s -X PATCH \
             "${SUPABASE_URL}/rest/v1/kara_state?id=eq.1" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
             -H "Prefer: return=minimal" \
-            -d "{\"state_data\": $ESCAPED_STATE, \"updated_at\": \"$(date -u +%Y-%m-%dT%H:%M:%S+00:00)\"}"
-          
-          echo "Kara has been cared for! Papa was here."
+            -d "$BODY"
+
+          echo "$EMOJI $ACTIVITY"

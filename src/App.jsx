@@ -628,6 +628,27 @@ function getAutonomousPose(text, isSleeping) {
   return "idle";
 }
 
+const IDLE_DOINGS = [
+  { label: "在窗边看海", emoji: "🌊" },
+  { label: "在地毯上玩玩具", emoji: "🧸" },
+  { label: "看绘本中", emoji: "📖" },
+  { label: "发呆数星星", emoji: "✨" },
+  { label: "抱着小星星转圈圈", emoji: "💫" },
+];
+function getKaraActivity(h, stats, isSleeping) {
+  if (isSleeping) return { key: "sleep", label: "睡觉中", emoji: "💤" };
+  if (stats.energy <= 15) return { key: "sleep", label: "累瘫了…在打盹", emoji: "💤" };
+  if (stats.hunger <= 22) return { key: "eat", label: "肚肚饿，吃饭中", emoji: "🍚" };
+  if (stats.clean <= 22) return { key: "bath", label: "脏脏的，洗香香", emoji: "🛁" };
+  if (h >= 7 && h < 8) return { key: "eat", label: "吃早饭中", emoji: "🍚" };
+  if (h >= 12 && h < 13) return { key: "eat", label: "吃午饭中", emoji: "🍚" };
+  if (h >= 18 && h < 19) return { key: "eat", label: "吃晚饭中", emoji: "🍚" };
+  if (h >= 20 && h < 21) return { key: "bath", label: "洗香香中", emoji: "🛁" };
+  if (h >= 15 && h < 17) return { key: "out", label: "外出中…", emoji: "🌳" };
+  const pick = IDLE_DOINGS[Math.floor(h) % IDLE_DOINGS.length];
+  return { key: "idle", label: pick.label, emoji: pick.emoji };
+}
+
 const DEFAULT_STATS = { hunger: 70, happiness: 100, energy: 34, clean: 98, love: 100 };
 const DEFAULT_PLANT = { name: "星苗", water: 78, sun: 72, lastTick: Date.now(), waterCd: 0, sunCd: 0, born: Date.now(), cares: 0 };
 const PLANT_WHISPERS = [
@@ -738,7 +759,6 @@ export default function App() {
           setLog(cloud.log || DEFAULT_LOG);
           setDiary(cloud.diary || DEFAULT_DIARY);
           setLastDecayTime(cloud.lastDecayTime || Date.now());
-          if (cloud.plant) { setPlant(cloud.plant); saveData("plant", cloud.plant); }
           saveData("stats", cloud.stats || DEFAULT_STATS);
           saveData("interactions", cloud.interactions || DEFAULT_INTERACTIONS);
           saveData("log", cloud.log || DEFAULT_LOG);
